@@ -91,6 +91,12 @@
       width: 100%;
       cursor: pointer;
     }
+    .product-img {
+      width: 100px;
+      height: auto;
+      display: block;
+      margin: 0 auto 10px;
+    }
   </style>
 </head>
 <body>
@@ -135,7 +141,12 @@
 
           const card = document.createElement("div");
           card.className = "product-card";
+
+          const imageName = sku.toLowerCase() + ".png";
+          const imagePath = `images/${imageName}`;
+
           card.innerHTML = `
+            <img src="${imagePath}" alt="${nombre}" class="product-img" />
             <h3>${nombre}</h3>
             <p><strong>SKU:</strong> ${sku}</p>
             <p class="price">$${parseFloat(precio).toFixed(2)}</p>
