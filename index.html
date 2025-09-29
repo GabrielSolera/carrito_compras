@@ -209,6 +209,7 @@
       .then(res => res.text())
       .then(text => {
         const json = JSON.parse(text.substring(47).slice(0, -2));
+        console.log(json); // Para depuración
         const rows = json.table.rows;
         const container = document.querySelector('.product-container');
         container.innerHTML = "";
@@ -222,12 +223,12 @@
 
           if (status.toLowerCase() !== "active") return;
           // Ensure all required fields exist
-          if (!nombre || !sku || !precio || !unidad || !status) return;
+          if (!nombre || !sku || isNaN(precio) || !unidad || !status) return;
 
           const card = document.createElement("div");
           card.className = "product-card";
           const imageName = sku ? sku.toLowerCase() + ".png" : "placeholder.png";
-          const imagePath = `https://raw.githubusercontent.com/gabrielsolera/oak-cart/main/images/${imageName}`;
+          const imagePath = `images/${imageName}`;
 
           card.innerHTML = `
             <img src="${imagePath}" alt="${nombre}" class="product-img" />
@@ -276,6 +277,7 @@
             card.remove();
           });
         });
+        renderCartSidebar();
       })
       .catch(err => {
         console.error("Error al cargar los productos:", err);
