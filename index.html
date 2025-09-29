@@ -179,7 +179,7 @@
   <script>
     const sheetID = "1okncHg_P3rzFLxqfs_lZvwiAwI5_GuJn";
     const gid = "1049247424";
-    const sheetURL = https://docs.google.com/spreadsheets/d/${sheetID}/gviz/tq?tqx=out:json&gid=${gid};
+    const sheetURL = `https://docs.google.com/spreadsheets/d/${sheetID}/gviz/tq?tqx=out:json&gid=${gid}`;
 
     let cart = JSON.parse(localStorage.getItem('cart')) || [];
     let cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -221,13 +221,15 @@
           const unidad = row.c[4]?.v || "";
 
           if (status.toLowerCase() !== "active") return;
+          // Ensure all required fields exist
+          if (!nombre || !sku || !precio || !unidad || !status) return;
 
           const card = document.createElement("div");
           card.className = "product-card";
-          const imageName = sku.toLowerCase() + ".png";
-          const imagePath = https://raw.githubusercontent.com/gabrielsolera/oak-cart/main/images/${imageName};
+          const imageName = sku ? sku.toLowerCase() + ".png" : "placeholder.png";
+          const imagePath = `https://raw.githubusercontent.com/gabrielsolera/oak-cart/main/images/${imageName}`;
 
-          card.innerHTML = 
+          card.innerHTML = `
             <img src="${imagePath}" alt="${nombre}" class="product-img" />
             <h3>${nombre}</h3>
             <p><strong>SKU:</strong> ${sku}</p>
@@ -240,7 +242,7 @@
             </div>
             <button class="add-to-cart">Agregar al carrito</button>
             <button class="remove-from-cart">🗑️</button>
-          ;
+          `;
           container.appendChild(card);
 
           const input = card.querySelector('input');
@@ -264,7 +266,8 @@
               cart.push({ sku, nombre, precio, unidad, quantity: qty });
             }
             saveCart();
-            alert(${nombre} agregado al carrito.);
+            renderCartSidebar();
+            alert(`${nombre} agregado al carrito.`);
           });
 
           card.querySelector('.remove-from-cart').addEventListener('click', () => {
@@ -279,6 +282,29 @@
         document.querySelector('.product-container').innerHTML =
           "<p>No se pudieron cargar los productos.</p>";
       });
+
+    function renderCartSidebar() {
+      const cartItemsDiv = document.getElementById("cart-items");
+      cartItemsDiv.innerHTML = "";
+      cart.forEach(item => {
+        const subtotal = item.quantity * item.precio;
+        const div = document.createElement("div");
+        div.className = "cart-item";
+        div.innerHTML = `
+          <div class="cart-item-details">
+            <h4>${item.nombre}</h4>
+            <div class="price">₡${item.precio.toFixed(2)} x ${item.quantity}</div>
+            <div class="cart-item-subtotal">₡${subtotal.toFixed(2)}</div>
+          </div>
+        `;
+        cartItemsDiv.appendChild(div);
+      });
+
+      const resumen = calculateCartSummary();
+      document.getElementById("cart-subtotal").textContent = resumen.subtotal.replace("₡", "");
+      document.getElementById("cart-iva").textContent = resumen.iva.replace("₡", "");
+      document.getElementById("cart-total").textContent = resumen.total.replace("₡", "");
+    }
 
     function toggleCart() {
       const sidebar = document.getElementById("cart-sidebar");
@@ -295,6 +321,7 @@
       if (closeBtn) {
         closeBtn.addEventListener('click', closeCart);
       }
+      renderCartSidebar();
     });
   </script>
 
