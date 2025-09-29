@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Oakberry Shopping Cart</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #fdf8f6;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background-color: white;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 30px;
+      border-bottom: 1px solid #ddd;
+    }
+    header img {
+      height: 40px;
+    }
+    nav a {
+      margin: 0 10px;
+      text-decoration: none;
+      color: #3d0c4e;
+      font-weight: bold;
+    }
+    .cart-icon {
+      font-size: 18px;
+      color: #3d0c4e;
+    }
+    .product-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      padding: 20px;
+    }
+    .product-card {
+      background: white;
+      border: 1px solid #eee;
+      border-radius: 8px;
+      width: 220px;
+      margin: 10px;
+      padding: 15px;
+      text-align: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .product-card img {
+      max-width: 100px;
+      margin-bottom: 10px;
+    }
+    .product-card h3 {
+      font-size: 16px;
+      color: #3d0c4e;
+      height: 60px;
+    }
+    .product-card .price {
+      font-size: 18px;
+      font-weight: bold;
+      color: #3d0c4e;
+    }
+    .product-card .quantity {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 10px 0;
+    }
+    .quantity button {
+      background-color: #3d0c4e;
+      color: white;
+      border: none;
+      width: 30px;
+      height: 30px;
+      font-size: 18px;
+      cursor: pointer;
+    }
+    .quantity input {
+      width: 40px;
+      text-align: center;
+      border: 1px solid #ccc;
+      margin: 0 5px;
+      height: 30px;
+    }
+    .add-to-cart {
+      background-color: #3d0c4e;
+      color: white;
+      border: none;
+      padding: 10px;
+      width: 100%;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="logo-oakberry.png" alt="Oakberry Logo">
+    <nav>
+      <a href="#">Start</a>
+      <a href="#">Enterprise</a>
+      <a href="#">Segment</a>
+      <a href="#">Brands</a>
+      <a href="#">Contact</a>
+    </nav>
+    <div class="cart-icon">🛒 <span id="cart-count">0</span></div>
+  </header>
+
+  <div class="product-container"></div>
+
+  <script>
+    const sheetID = "1okncHg_P3rzFLxqfs_lZvwiAwI5_GuJn";
+    const gid = "1049247424";
+    const sheetURL = `https://docs.google.com/spreadsheets/d/${sheetID}/gviz/tq?tqx=out:json&gid=${gid}`;
+
+    let cartCount = 0;
+
+    fetch(sheetURL)
+      .then(res => res.text())
+      .then(text => {
+        // Quitar el texto extra para quedarnos con JSON puro
+        const json = JSON.parse(text.substring(47).slice(0, -2));
+        const rows = json.table.rows;
+        const container = document.querySelector('.product-container');
+        container.innerHTML = "";
+
+        rows.forEach(row => {
+          const nombre = row.c[0]?.v || ""; // Item Name
+          const sku = row.c[1]?.v || "";    // SKU
+          const precio = row.c[2]?.v || ""; // Selling Price
+          const status = row.c[3]?.v || ""; // Status
+          const unidad = row.c[4]?.v || ""; // Unit
+
+          if (status.toLowerCase() !== "active") return;
+
+          const card = document.createElement("div");
+          card.className = "product-card";
+          card.innerHTML = `
+            <h3>${nombre}</h3>
+            <p><strong>SKU:</strong> ${sku}</p>
+            <p class="price">$${parseFloat(precio).toFixed(2)}</p>
+            <p><strong>Unidad:</strong> ${unidad}</p>
+            <div class="quantity">
+              <button class="minus">−</button>
+              <input type="text" value="1" readonly>
+              <button class="plus">+</button>
+            </div>
+            <button class="add-to-cart">Agregar al carrito</button>
+          `;
+          container.appendChild(card);
+        });
+
+        attachEvents();
+      })
+      .catch(err => {
+        console.error("Error al cargar los productos:", err);
+        document.querySelector('.product-container').innerHTML = 
+          "<p>No se pudieron cargar los productos.</p>";
+      });
+
+    function attachEvents() {
+      document.querySelectorAll('.add-to-cart').forEach(btn => {
+        btn.addEventListener('click', () => {
+          cartCount++;
+          document.getElementById('cart-count').textContent = cartCount;
+        });
+      });
+
+      document.querySelectorAll('.product-card').forEach(card => {
+        const minus = card.querySelector('.minus');
+        const plus = card.querySelector('.plus');
+        const input = card.querySelector('input');
+
+        minus.addEventListener('click', () => {
+          let v = parseInt(input.value);
+          if (v > 1) input.value = v - 1;
+        });
+        plus.addEventListener('click', () => {
+          let v = parseInt(input.value);
+          input.value = v + 1;
+        });
+      });
+    }
+  </script>
+</body>
+</html>
