@@ -146,11 +146,14 @@
   <div class="product-container"></div>
 
   <script>
+    let cart = JSON.parse(localStorage.getItem("cart")) || [];
+    let cartCount = cart.reduce((total, item) => total + item.quantity, 0);
+    document.getElementById('cart-count').textContent = cartCount;
+
     const sheetID = "1okncHg_P3rzFLxqfs_lZvwiAwI5_GuJn";
     const gid = "1049247424";
     const sheetURL = `https://docs.google.com/spreadsheets/d/${sheetID}/gviz/tq?tqx=out:json&gid=${gid}`;
 
-    let cartCount = 0;
     let cartItems = [];
 
     fetch(sheetURL)
@@ -181,7 +184,7 @@
             <img src="${imagePath}" alt="${nombre}" class="product-img" />
             <h3>${nombre}</h3>
             <p><strong>SKU:</strong> ${sku}</p>
-            <p class="price">${parseFloat(precio).toLocaleString("fr-FR", { minimumFractionDigits: 0 })}</p>
+            <p class="price">₡${(parseFloat(precio).toFixed(0))}</p>
             <p><strong>Unidad:</strong> ${unidad}</p>
             <div class="quantity">
               <button class="minus">−</button>
@@ -203,27 +206,24 @@
 
     function attachEvents() {
       document.querySelectorAll('.add-to-cart').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          const card = e.target.closest('.product-card');
-          const name = card.querySelector('h3').textContent;
-          const sku = card.querySelector('p').textContent.replace('SKU:', '').trim();
-          const priceText = card.querySelector('.price').textContent;
-          const price = parseFloat(priceText.replace(/\./g, '').replace(',', '.')) || 0;
-          const quantity = parseInt(card.querySelector('input').value);
+        btn.addEventListener('click', () => {
+          const card = btn.closest('.product-card');
+          const sku = card.querySelector("p strong").nextSibling.textContent.trim();
+          const name = card.querySelector("h3").textContent.trim();
+          const price = parseFloat(card.querySelector(".price").textContent.replace("₡", ""));
+          const quantity = parseInt(card.querySelector("input").value);
 
-          // Image source
-          const imgSrc = card.querySelector('img').src;
-
-          // Check if item already in cart
-          const existingIndex = cartItems.findIndex(item => item.sku === sku);
-          if (existingIndex >= 0) {
-            cartItems[existingIndex].quantity += quantity;
+          const existing = cart.find(item => item.sku === sku);
+          if (existing) {
+            existing.quantity += quantity;
           } else {
-            cartItems.push({ name, sku, price, quantity, imgSrc });
+            cart.push({ sku, name, price, quantity });
           }
 
-          updateCartCount();
-          renderCartItems();
+          cartCount += quantity;
+          document.getElementById('cart-count').textContent = cartCount;
+
+          localStorage.setItem("cart", JSON.stringify(cart));
         });
       });
 
@@ -305,6 +305,25 @@
     function closeCart() {
       document.getElementById("cart-sidebar").style.right = "-350px";
     }
+
+    document.getElementById('login-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      document.getElementById('login-modal').style.display = 'none';
+      // Ideally use fetch to trigger backend email
+      alert("Solicitud enviada a gabriel.solera@oaklatam.com");
+    });
+
+    window.addEventListener('load', () => {
+      const footer = document.querySelector('.cart-footer');
+      if (footer) {
+        const processBtn = document.createElement('button');
+        processBtn.textContent = "Procesar Compra";
+        processBtn.style.background = "red";
+        processBtn.style.color = "white";
+        processBtn.style.marginLeft = "10px";
+        footer.appendChild(processBtn);
+      }
+    });
   </script>
 
   <div id="cart-sidebar" style="position: fixed; top: 0; right: -350px; width: 350px; height: 100%; background-color: white; box-shadow: -2px 0 5px rgba(0,0,0,0.2); z-index: 1000; overflow-y: auto; transition: right 0.3s ease; padding: 25px;">
@@ -312,6 +331,16 @@
     <div id="cart-items"></div>
     <button onclick="closeCart()" style="margin-top: 20px; background-color: #3d0c4e; color: white; border: none; padding: 10px 15px;">Cerrar</button>
   </div>
+
+  <div id="login-modal" style="position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); display:flex; align-items:center; justify-content:center; z-index:9999;">
+    <form id="login-form" style="background:white; padding:20px; border-radius:8px; display:flex; flex-direction:column; width:300px;">
+      <h3 style="margin-bottom:10px;">Registro / Ingreso</h3>
+      <input type="text" placeholder="Nombre de tienda" required style="margin:5px 0; padding:5px;" />
+      <input type="text" placeholder="Sociedad" required style="margin:5px 0; padding:5px;" />
+      <input type="text" placeholder="Celular" required style="margin:5px 0; padding:5px;" />
+      <input type="email" placeholder="Correo" required style="margin:5px 0; padding:5px;" />
+      <button type="submit" style="background:#3d0c4e; color:white; padding:10px; margin-top:10px;">Enviar</button>
+    </form>
+  </div>
 </body>
 </html>
-
