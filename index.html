@@ -221,10 +221,12 @@
           const unidad = row.c[4]?.v || "";
 
           if (status.toLowerCase() !== "active") return;
+          // Ensure all required fields exist
+          if (!nombre || !sku || !precio || !unidad || !status) return;
 
           const card = document.createElement("div");
           card.className = "product-card";
-          const imageName = sku.toLowerCase() + ".png";
+          const imageName = sku ? sku.toLowerCase() + ".png" : "placeholder.png";
           const imagePath = `https://raw.githubusercontent.com/gabrielsolera/oak-cart/main/images/${imageName}`;
 
           card.innerHTML = `
