@@ -109,7 +109,7 @@
       <a href="#">Brands</a>
       <a href="#">Contact</a>
     </nav>
-    <a href="cart.html" class="cart-icon" style="text-decoration: none;">🛒 <span id="cart-count">0</span></a>
+    <div class="cart-icon" onclick="toggleCart()" style="cursor:pointer;">🛒 <span id="cart-count">0</span></div>
   </header>
 
   <div class="product-container"></div>
@@ -171,9 +171,19 @@
 
     function attachEvents() {
       document.querySelectorAll('.add-to-cart').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', (e) => {
           cartCount++;
           document.getElementById('cart-count').textContent = cartCount;
+
+          const card = e.target.closest('.product-card');
+          const name = card.querySelector('h3').textContent;
+          const skuText = card.querySelector('p').textContent || '';
+          const price = card.querySelector('.price').textContent;
+          const quantity = card.querySelector('input').value;
+
+          const item = document.createElement('div');
+          item.innerHTML = `<p><strong>${name}</strong> (x${quantity}) - ${price}</p>`;
+          document.getElementById('cart-items').appendChild(item);
         });
       });
 
@@ -192,6 +202,21 @@
         });
       });
     }
+
+    function toggleCart() {
+      const sidebar = document.getElementById("cart-sidebar");
+      sidebar.style.right = sidebar.style.right === "0px" ? "-350px" : "0px";
+    }
+
+    function closeCart() {
+      document.getElementById("cart-sidebar").style.right = "-350px";
+    }
   </script>
+
+  <div id="cart-sidebar" style="position: fixed; top: 0; right: -350px; width: 350px; height: 100%; background-color: white; box-shadow: -2px 0 5px rgba(0,0,0,0.2); z-index: 1000; overflow-y: auto; transition: right 0.3s ease; padding: 20px;">
+    <h2 style="margin-top: 0;">Carrito</h2>
+    <div id="cart-items"></div>
+    <button onclick="closeCart()" style="margin-top: 20px; background-color: #3d0c4e; color: white; border: none; padding: 10px 15px;">Cerrar</button>
+  </div>
 </body>
 </html>
