@@ -97,6 +97,37 @@
       display: block;
       margin: 0 auto 10px;
     }
+    /* New cart styles */
+    .cart-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #eee;
+      padding: 10px 0;
+    }
+    .cart-item-img {
+      width: 60px;
+      height: auto;
+      margin-right: 15px;
+    }
+    .cart-item-details {
+      flex: 1;
+      margin-right: 10px;
+    }
+    .cart-item-details h4 {
+      margin: 0 0 5px;
+      font-size: 14px;
+      color: #3d0c4e;
+    }
+    .cart-item-details .price {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 5px;
+    }
+    .cart-item-subtotal {
+      font-weight: bold;
+      color: #3d0c4e;
+    }
   </style>
 </head>
 <body>
@@ -120,6 +151,7 @@
     const sheetURL = `https://docs.google.com/spreadsheets/d/${sheetID}/gviz/tq?tqx=out:json&gid=${gid}`;
 
     let cartCount = 0;
+    let cartItems = [];
 
     fetch(sheetURL)
       .then(res => res.text())
@@ -172,18 +204,26 @@
     function attachEvents() {
       document.querySelectorAll('.add-to-cart').forEach(btn => {
         btn.addEventListener('click', (e) => {
-          cartCount++;
-          document.getElementById('cart-count').textContent = cartCount;
-
           const card = e.target.closest('.product-card');
           const name = card.querySelector('h3').textContent;
-          const skuText = card.querySelector('p').textContent || '';
-          const price = card.querySelector('.price').textContent;
-          const quantity = card.querySelector('input').value;
+          const sku = card.querySelector('p').textContent.replace('SKU:', '').trim();
+          const priceText = card.querySelector('.price').textContent;
+          const price = parseFloat(priceText.replace(/\./g, '').replace(',', '.')) || 0;
+          const quantity = parseInt(card.querySelector('input').value);
 
-          const item = document.createElement('div');
-          item.innerHTML = `<p><strong>${name}</strong> (x${quantity}) - ${price}</p>`;
-          document.getElementById('cart-items').appendChild(item);
+          // Image source
+          const imgSrc = card.querySelector('img').src;
+
+          // Check if item already in cart
+          const existingIndex = cartItems.findIndex(item => item.sku === sku);
+          if (existingIndex >= 0) {
+            cartItems[existingIndex].quantity += quantity;
+          } else {
+            cartItems.push({ name, sku, price, quantity, imgSrc });
+          }
+
+          updateCartCount();
+          renderCartItems();
         });
       });
 
@@ -203,6 +243,60 @@
       });
     }
 
+    function updateCartCount() {
+      cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
+      document.getElementById('cart-count').textContent = cartCount;
+    }
+
+    function renderCartItems() {
+      const cartContainer = document.getElementById('cart-items');
+      cartContainer.innerHTML = '';
+
+      cartItems.forEach((item, index) => {
+        const subtotal = item.price * item.quantity;
+
+        const cartItem = document.createElement('div');
+        cartItem.className = 'cart-item';
+
+        cartItem.innerHTML = `
+          <img src="${item.imgSrc}" alt="${item.name}" class="cart-item-img" />
+          <div class="cart-item-details">
+            <h4>${item.name}</h4>
+            <p class="price">₡${item.price.toLocaleString('fr-FR', { minimumFractionDigits: 0 })}</p>
+            <div class="quantity">
+              <button class="minus">−</button>
+              <input type="text" value="${item.quantity}" readonly>
+              <button class="plus">+</button>
+            </div>
+          </div>
+          <div class="cart-item-subtotal">₡${subtotal.toLocaleString('fr-FR', { minimumFractionDigits: 0 })}</div>
+        `;
+
+        // Attach quantity button events
+        const minusBtn = cartItem.querySelector('.minus');
+        const plusBtn = cartItem.querySelector('.plus');
+        const qtyInput = cartItem.querySelector('input');
+
+        minusBtn.addEventListener('click', () => {
+          if (item.quantity > 1) {
+            item.quantity--;
+            qtyInput.value = item.quantity;
+            updateCartCount();
+            renderCartItems();
+          }
+        });
+
+        plusBtn.addEventListener('click', () => {
+          item.quantity++;
+          qtyInput.value = item.quantity;
+          updateCartCount();
+          renderCartItems();
+        });
+
+        cartContainer.appendChild(cartItem);
+      });
+    }
+
     function toggleCart() {
       const sidebar = document.getElementById("cart-sidebar");
       sidebar.style.right = sidebar.style.right === "0px" ? "-350px" : "0px";
@@ -213,7 +307,7 @@
     }
   </script>
 
-  <div id="cart-sidebar" style="position: fixed; top: 0; right: -350px; width: 350px; height: 100%; background-color: white; box-shadow: -2px 0 5px rgba(0,0,0,0.2); z-index: 1000; overflow-y: auto; transition: right 0.3s ease; padding: 20px;">
+  <div id="cart-sidebar" style="position: fixed; top: 0; right: -350px; width: 350px; height: 100%; background-color: white; box-shadow: -2px 0 5px rgba(0,0,0,0.2); z-index: 1000; overflow-y: auto; transition: right 0.3s ease; padding: 25px;">
     <h2 style="margin-top: 0;">Carrito</h2>
     <div id="cart-items"></div>
     <button onclick="closeCart()" style="margin-top: 20px; background-color: #3d0c4e; color: white; border: none; padding: 10px 15px;">Cerrar</button>
