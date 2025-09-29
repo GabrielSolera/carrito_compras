@@ -109,7 +109,7 @@
       <a href="#">Brands</a>
       <a href="#">Contact</a>
     </nav>
-    <div class="cart-icon">🛒 <span id="cart-count">0</span></div>
+    <a href="cart.html" class="cart-icon" style="text-decoration: none;">🛒 <span id="cart-count">0</span></a>
   </header>
 
   <div class="product-container"></div>
@@ -149,7 +149,7 @@
             <img src="${imagePath}" alt="${nombre}" class="product-img" />
             <h3>${nombre}</h3>
             <p><strong>SKU:</strong> ${sku}</p>
-            <p class="price">$${parseFloat(precio).toFixed(2)}</p>
+            <p class="price">${parseFloat(precio).toLocaleString("fr-FR", { minimumFractionDigits: 0 })}</p>
             <p><strong>Unidad:</strong> ${unidad}</p>
             <div class="quantity">
               <button class="minus">−</button>
