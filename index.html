@@ -128,6 +128,20 @@
       font-weight: bold;
       color: #3d0c4e;
     }
+    .cart-summary {
+      margin-top: 20px;
+      font-size: 14px;
+    }
+    .close-btn {
+      margin-top: 10px;
+      position: sticky;
+      bottom: 20px;
+      background-color: #46006b;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -152,6 +166,14 @@
 
     let cartCount = 0;
     let cartItems = [];
+
+    // Load cart from localStorage on page load
+    const savedCart = localStorage.getItem('cart');
+    if (savedCart) {
+      cartItems = JSON.parse(savedCart);
+      updateCartCount();
+      renderCartItems();
+    }
 
     fetch(sheetURL)
       .then(res => res.text())
@@ -181,7 +203,7 @@
             <img src="${imagePath}" alt="${nombre}" class="product-img" />
             <h3>${nombre}</h3>
             <p><strong>SKU:</strong> ${sku}</p>
-            <p class="price">${parseFloat(precio).toLocaleString("fr-FR", { minimumFractionDigits: 0 })}</p>
+            <p class="price">₡${parseFloat(precio).toFixed(2)}</p>
             <p><strong>Unidad:</strong> ${unidad}</p>
             <div class="quantity">
               <button class="minus">−</button>
@@ -208,7 +230,7 @@
           const name = card.querySelector('h3').textContent;
           const sku = card.querySelector('p').textContent.replace('SKU:', '').trim();
           const priceText = card.querySelector('.price').textContent;
-          const price = parseFloat(priceText.replace(/\./g, '').replace(',', '.')) || 0;
+          const price = parseFloat(priceText.replace('₡','')) || 0;
           const quantity = parseInt(card.querySelector('input').value);
 
           // Image source
@@ -224,6 +246,7 @@
 
           updateCartCount();
           renderCartItems();
+          localStorage.setItem('cart', JSON.stringify(cartItems));
         });
       });
 
@@ -253,8 +276,9 @@
       cartContainer.innerHTML = '';
 
       cartItems.forEach((item, index) => {
-        const unitPrice = item.price;
-        const subtotal = unitPrice * item.quantity;
+        const price = item.price;
+        const quantity = item.quantity;
+        const subtotal = price * quantity;
         const iva = subtotal * 0.13;
         const total = subtotal + iva;
 
@@ -265,17 +289,17 @@
           <img src="${item.imgSrc}" alt="${item.name}" class="cart-item-img" />
           <div class="cart-item-details">
             <h4>${item.name}</h4>
-            <p class="price">₡${unitPrice.toLocaleString('fr-FR', { minimumFractionDigits: 0 })}</p>
+            <p class="price">₡${price.toFixed(2)}</p>
             <div class="quantity">
               <button class="minus">−</button>
-              <input type="text" value="${item.quantity}" readonly>
+              <input type="text" value="${quantity}" readonly>
               <button class="plus">+</button>
             </div>
           </div>
           <div style="text-align: right;">
-            <div class="cart-item-subtotal">Subtotal: ₡${subtotal.toLocaleString('fr-FR', { minimumFractionDigits: 0 })}</div>
-            <div class="cart-item-subtotal">IVA: ₡${iva.toLocaleString('fr-FR', { minimumFractionDigits: 0 })}</div>
-            <div class="cart-item-subtotal" style="font-weight:bold;">Total: ₡${total.toLocaleString('fr-FR', { minimumFractionDigits: 0 })}</div>
+            <div class="cart-item-subtotal">Subtotal: ₡${subtotal.toFixed(2)}</div>
+            <div class="cart-item-subtotal">IVA: ₡${iva.toFixed(2)}</div>
+            <div class="cart-item-subtotal" style="font-weight:bold;">Total: ₡${total.toFixed(2)}</div>
           </div>
           <button class="remove-item" style="margin-left:10px; color: #3d0c4e; background:none; border:none; font-size: 20px; cursor:pointer;">🗑️</button>
         `;
@@ -291,6 +315,7 @@
             qtyInput.value = item.quantity;
             updateCartCount();
             renderCartItems();
+            localStorage.setItem('cart', JSON.stringify(cartItems));
           }
         });
 
@@ -299,6 +324,7 @@
           qtyInput.value = item.quantity;
           updateCartCount();
           renderCartItems();
+          localStorage.setItem('cart', JSON.stringify(cartItems));
         });
 
         cartContainer.appendChild(cartItem);
@@ -308,6 +334,7 @@
           cartItems.splice(index, 1);
           updateCartCount();
           renderCartItems();
+          localStorage.setItem('cart', JSON.stringify(cartItems));
         });
       });
 
@@ -315,9 +342,9 @@
       const ivaTotal = subtotalSum * 0.13;
       const totalFinal = subtotalSum + ivaTotal;
 
-      document.getElementById("summary-subtotal").textContent = `Subtotal: ₡${subtotalSum.toLocaleString('fr-FR', { minimumFractionDigits: 0 })}`;
-      document.getElementById("summary-iva").textContent = `IVA (13%): ₡${ivaTotal.toLocaleString('fr-FR', { minimumFractionDigits: 0 })}`;
-      document.getElementById("summary-total").textContent = `Total: ₡${totalFinal.toLocaleString('fr-FR', { minimumFractionDigits: 0 })}`;
+      document.getElementById('cart-subtotal').textContent = subtotalSum.toFixed(2);
+      document.getElementById('cart-iva').textContent = ivaTotal.toFixed(2);
+      document.getElementById('cart-total').textContent = totalFinal.toFixed(2);
     }
 
     function toggleCart() {
@@ -328,17 +355,25 @@
     function closeCart() {
       document.getElementById("cart-sidebar").style.right = "-350px";
     }
+
+    // Attach event listener to close button after DOM content loaded
+    document.addEventListener('DOMContentLoaded', () => {
+      const closeBtn = document.querySelector('.close-btn');
+      if (closeBtn) {
+        closeBtn.addEventListener('click', closeCart);
+      }
+    });
   </script>
 
   <div id="cart-sidebar" style="position: fixed; top: 0; right: -350px; width: 350px; height: 100%; background-color: white; box-shadow: -2px 0 5px rgba(0,0,0,0.2); z-index: 1000; overflow-y: auto; transition: right 0.3s ease; padding: 25px;">
     <h2 style="margin-top: 0;">Carrito</h2>
     <div id="cart-items"></div>
-    <div id="cart-summary" style="margin-top: 20px; font-weight: bold;">
-      <div id="summary-subtotal"></div>
-      <div id="summary-iva"></div>
-      <div id="summary-total"></div>
+    <button class="close-btn">Cerrar</button>
+    <div class="cart-summary">
+      <div>Subtotal: ₡<span id="cart-subtotal"></span></div>
+      <div>IVA (13%): ₡<span id="cart-iva"></span></div>
+      <div><strong>Total: ₡<span id="cart-total"></span></strong></div>
     </div>
-    <button onclick="closeCart()" style="margin-top: 20px; background-color: #3d0c4e; color: white; border: none; padding: 10px 15px;">Cerrar</button>
   </div>
 </body>
 </html>
