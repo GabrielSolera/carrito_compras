@@ -253,7 +253,10 @@
       cartContainer.innerHTML = '';
 
       cartItems.forEach((item, index) => {
-        const subtotal = item.price * item.quantity;
+        const unitPrice = item.price;
+        const subtotal = unitPrice * item.quantity;
+        const iva = subtotal * 0.13;
+        const total = subtotal + iva;
 
         const cartItem = document.createElement('div');
         cartItem.className = 'cart-item';
@@ -262,14 +265,19 @@
           <img src="${item.imgSrc}" alt="${item.name}" class="cart-item-img" />
           <div class="cart-item-details">
             <h4>${item.name}</h4>
-            <p class="price">₡${item.price.toLocaleString('fr-FR', { minimumFractionDigits: 0 })}</p>
+            <p class="price">₡${unitPrice.toLocaleString('fr-FR', { minimumFractionDigits: 0 })}</p>
             <div class="quantity">
               <button class="minus">−</button>
               <input type="text" value="${item.quantity}" readonly>
               <button class="plus">+</button>
             </div>
           </div>
-          <div class="cart-item-subtotal">₡${subtotal.toLocaleString('fr-FR', { minimumFractionDigits: 0 })}</div>
+          <div style="text-align: right;">
+            <div class="cart-item-subtotal">Subtotal: ₡${subtotal.toLocaleString('fr-FR', { minimumFractionDigits: 0 })}</div>
+            <div class="cart-item-subtotal">IVA: ₡${iva.toLocaleString('fr-FR', { minimumFractionDigits: 0 })}</div>
+            <div class="cart-item-subtotal" style="font-weight:bold;">Total: ₡${total.toLocaleString('fr-FR', { minimumFractionDigits: 0 })}</div>
+          </div>
+          <button class="remove-item" style="margin-left:10px; color: #3d0c4e; background:none; border:none; font-size: 20px; cursor:pointer;">🗑️</button>
         `;
 
         // Attach quantity button events
@@ -294,7 +302,22 @@
         });
 
         cartContainer.appendChild(cartItem);
+
+        const removeBtn = cartItem.querySelector('.remove-item');
+        removeBtn.addEventListener('click', () => {
+          cartItems.splice(index, 1);
+          updateCartCount();
+          renderCartItems();
+        });
       });
+
+      const subtotalSum = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
+      const ivaTotal = subtotalSum * 0.13;
+      const totalFinal = subtotalSum + ivaTotal;
+
+      document.getElementById("summary-subtotal").textContent = `Subtotal: ₡${subtotalSum.toLocaleString('fr-FR', { minimumFractionDigits: 0 })}`;
+      document.getElementById("summary-iva").textContent = `IVA (13%): ₡${ivaTotal.toLocaleString('fr-FR', { minimumFractionDigits: 0 })}`;
+      document.getElementById("summary-total").textContent = `Total: ₡${totalFinal.toLocaleString('fr-FR', { minimumFractionDigits: 0 })}`;
     }
 
     function toggleCart() {
@@ -310,6 +333,11 @@
   <div id="cart-sidebar" style="position: fixed; top: 0; right: -350px; width: 350px; height: 100%; background-color: white; box-shadow: -2px 0 5px rgba(0,0,0,0.2); z-index: 1000; overflow-y: auto; transition: right 0.3s ease; padding: 25px;">
     <h2 style="margin-top: 0;">Carrito</h2>
     <div id="cart-items"></div>
+    <div id="cart-summary" style="margin-top: 20px; font-weight: bold;">
+      <div id="summary-subtotal"></div>
+      <div id="summary-iva"></div>
+      <div id="summary-total"></div>
+    </div>
     <button onclick="closeCart()" style="margin-top: 20px; background-color: #3d0c4e; color: white; border: none; padding: 10px 15px;">Cerrar</button>
   </div>
 </body>
