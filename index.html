@@ -183,6 +183,15 @@
       margin-top:10px; 
       cursor: pointer;
     }
+    .procesar-compra-btn {
+      background-color: red;
+      color: white;
+      padding: 10px;
+      border: none;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 10px;
+    }
   </style>
 </head>
 <body>
@@ -221,26 +230,31 @@
       const company = document.getElementById('companyName').value;
       const phone = document.getElementById('phone').value;
       const email = document.getElementById('email').value;
+      if (!store || !company || !phone || !email) {
+        alert("Por favor, complete todos los campos.");
+        return;
+      }
       const body = `Nueva solicitud:\nTienda: ${store}\nSociedad: ${company}\nCelular: ${phone}\nCorreo: ${email}`;
       const mailto = `mailto:gabriel.solera@oaklatam.com?subject=Solicitud%20de%20registro&body=${encodeURIComponent(body)}`;
       window.location.href = mailto;
       localStorage.setItem('logged', 'true');
       document.getElementById('loginModal').style.display = 'none';
+      loadProducts();
     }
 
     function saveCart() {
-      localStorage.setItem('oak_cart', JSON.stringify(cart));
+      localStorage.setItem('cart', JSON.stringify(cart));
     }
 
     function loadCart() {
-      const stored = localStorage.getItem('oak_cart');
+      const stored = localStorage.getItem('cart');
       return stored ? JSON.parse(stored) : [];
     }
 
     let cart = loadCart();
 
     function updateCartCount() {
-      const count = cart.reduce((acc, item) => acc + item.quantity, 0);
+      const count = cart.reduce((acc, item) => acc + item.qty, 0);
       document.getElementById('cart-count').textContent = count;
     }
 
@@ -250,59 +264,68 @@
     const gid = "1049247424";
     const sheetURL = `https://docs.google.com/spreadsheets/d/${sheetID}/gviz/tq?tqx=out:json&gid=${gid}`;
 
-    fetch(sheetURL)
-      .then(res => res.text())
-      .then(text => {
-        // Quitar el texto extra para quedarnos con JSON puro
-        const json = JSON.parse(text.substring(47).slice(0, -2));
-        const rows = json.table.rows;
-        const container = document.querySelector('.product-container');
-        container.innerHTML = "";
+    function loadProducts() {
+      fetch(sheetURL)
+        .then(res => res.text())
+        .then(text => {
+          // Quitar el texto extra para quedarnos con JSON puro
+          const json = JSON.parse(text.substring(47).slice(0, -2));
+          const rows = json.table.rows;
+          const container = document.querySelector('.product-container');
+          container.innerHTML = "";
 
-        rows.forEach(row => {
-          const nombre = row.c[0]?.v || ""; // Item Name
-          const sku = row.c[1]?.v || "";    // SKU
-          const precio = row.c[2]?.v || ""; // Selling Price
-          const status = row.c[3]?.v || ""; // Status
-          const unidad = row.c[4]?.v || ""; // Unit
+          rows.forEach(row => {
+            const nombre = row.c[0]?.v || ""; // Item Name
+            const sku = row.c[1]?.v || "";    // SKU
+            const precio = row.c[2]?.v || ""; // Selling Price
+            const status = row.c[3]?.v || ""; // Status
+            const unidad = row.c[4]?.v || ""; // Unit
 
-          if (status.toLowerCase() !== "active") return;
+            if (status.toLowerCase() !== "active") return;
 
-          const card = document.createElement("div");
-          card.className = "product-card";
+            const card = document.createElement("div");
+            card.className = "product-card";
 
-          const imageName = `${sku.toUpperCase()}.png`;
-          const imagePath = imageName;
+            const imageName = `${sku.toUpperCase()}.png`;
+            const imagePath = imageName;
 
-          card.innerHTML = `
-            <img src="${imagePath}" alt="${nombre}" class="product-img" />
-            <h3>${nombre}</h3>
-            <p><strong>SKU:</strong> ${sku}</p>
-            <p class="price">₡${Math.round(precio)}</p>
-            <p><strong>Unidad:</strong> ${unidad}</p>
-            <div class="quantity">
-              <button class="minus">−</button>
-              <input type="text" value="1" readonly>
-              <button class="plus">+</button>
-            </div>
-            <button class="add-to-cart">Agregar al carrito</button>
-          `;
-          container.appendChild(card);
+            card.innerHTML = `
+              <img src="${imagePath}" alt="${nombre}" class="product-img" />
+              <h3>${nombre}</h3>
+              <p><strong>SKU:</strong> ${sku}</p>
+              <p class="price">¢${Math.round(precio)}</p>
+              <p><strong>Unidad:</strong> ${unidad}</p>
+              <div class="quantity">
+                <button class="minus">−</button>
+                <input type="text" value="1" readonly>
+                <button class="plus">+</button>
+              </div>
+              <button class="add-to-cart">Agregar al carrito</button>
+            `;
+            container.appendChild(card);
+          });
+
+          attachEvents();
+        })
+        .catch(err => {
+          console.error("Error al cargar los productos:", err);
+          document.querySelector('.product-container').innerHTML = 
+            "<p>No se pudieron cargar los productos.</p>";
         });
+    }
 
-        attachEvents();
-      })
-      .catch(err => {
-        console.error("Error al cargar los productos:", err);
-        document.querySelector('.product-container').innerHTML = 
-          "<p>No se pudieron cargar los productos.</p>";
-      });
+    if(localStorage.getItem('logged')) {
+      loadProducts();
+    }
 
     function toggleCart(show) {
       document.getElementById("cart-sidebar").style.display = show ? "flex" : "none";
+      if(show) {
+        renderCart();
+      }
     }
 
-    function updateCartDisplay() {
+    function renderCart() {
       const items = JSON.parse(localStorage.getItem("cart") || "[]");
       const cartList = document.getElementById("cart-items");
       cartList.innerHTML = "";
@@ -313,7 +336,7 @@
         subtotal += totalItem;
         const li = document.createElement("li");
         li.innerHTML = `
-          ${item.name} x ${item.qty} - ₡${(totalItem).toFixed(0)}
+          ${item.name} x ${item.qty} - ¢${totalItem.toFixed(0)}
           <button onclick="removeFromCart(${i})" style="color:red;margin-left:10px;">🗑️</button>
         `;
         cartList.appendChild(li);
@@ -325,14 +348,15 @@
       document.getElementById("subtotal").textContent = subtotal.toFixed(0);
       document.getElementById("iva").textContent = iva.toFixed(0);
       document.getElementById("total").textContent = total.toFixed(0);
-      document.getElementById("cart-count").textContent = items.length;
+      document.getElementById("cart-count").textContent = items.reduce((acc, item) => acc + item.qty, 0);
     }
 
     function removeFromCart(index) {
       const items = JSON.parse(localStorage.getItem("cart") || "[]");
       items.splice(index, 1);
       localStorage.setItem("cart", JSON.stringify(items));
-      updateCartDisplay();
+      renderCart();
+      updateCartCount();
     }
 
     function attachEvents() {
@@ -341,14 +365,20 @@
           const card = e.target.closest('.product-card');
           const name = card.querySelector('h3').textContent;
           const sku = card.querySelector('p').textContent.split("SKU: ")[1];
-          const price = parseFloat(card.querySelector('.price').textContent.replace(/[₡$]/g, ""));
+          const price = parseFloat(card.querySelector('.price').textContent.replace(/[¢$]/g, ""));
           const qty = parseInt(card.querySelector('input').value);
 
-          const cart = JSON.parse(localStorage.getItem("cart") || "[]");
-          cart.push({ name, sku, price, qty });
+          let cart = JSON.parse(localStorage.getItem("cart") || "[]");
+          // Check if product already in cart
+          const index = cart.findIndex(item => item.sku === sku);
+          if(index !== -1) {
+            cart[index].qty += qty;
+          } else {
+            cart.push({ name, sku, price, qty });
+          }
           localStorage.setItem("cart", JSON.stringify(cart));
-
-          updateCartDisplay();
+          renderCart();
+          updateCartCount();
           toggleCart(true);
         });
       });
@@ -371,7 +401,8 @@
 
     // On load
     window.addEventListener("DOMContentLoaded", () => {
-      updateCartDisplay();
+      renderCart();
+      updateCartCount();
     });
   </script>
 
@@ -379,12 +410,12 @@
     <div>
       <h3>Carrito</h3>
       <ul id="cart-items" style="list-style:none;padding:0"></ul>
-      <p>Subtotal: ₡<span id="subtotal">0</span></p>
-      <p>IVA (13%): ₡<span id="iva">0</span></p>
-      <p><strong>Total: ₡<span id="total">0</span></strong></p>
+      <p>Subtotal: ¢<span id="subtotal">0</span></p>
+      <p>IVA (13%): ¢<span id="iva">0</span></p>
+      <p><strong>Total: ¢<span id="total">0</span></strong></p>
     </div>
     <div style="margin-top:auto;">
-      <button id="process-cart" style="background-color:red;color:white;padding:10px;width:100%;margin-bottom:10px;">Procesar compra</button>
+      <button id="process-cart" class="procesar-compra-btn">Procesar compra</button>
       <button onclick="toggleCart(false)" style="padding:10px;width:100%;">Cerrar</button>
     </div>
   </div>
