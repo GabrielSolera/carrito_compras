@@ -228,10 +228,23 @@
       document.getElementById('loginModal').style.display = 'none';
     }
 
-    let cartCount = 0;
-    const savedCart = JSON.parse(localStorage.getItem('cart')) || [];
-    cartCount = savedCart.reduce((acc, item) => acc + item.quantity, 0);
-    document.getElementById('cart-count').textContent = cartCount;
+    function saveCart() {
+      localStorage.setItem('oak_cart', JSON.stringify(cart));
+    }
+
+    function loadCart() {
+      const stored = localStorage.getItem('oak_cart');
+      return stored ? JSON.parse(stored) : [];
+    }
+
+    let cart = loadCart();
+
+    function updateCartCount() {
+      const count = cart.reduce((acc, item) => acc + item.quantity, 0);
+      document.getElementById('cart-count').textContent = count;
+    }
+
+    updateCartCount();
 
     const sheetID = "1okncHg_P3rzFLxqfs_lZvwiAwI5_GuJn";
     const gid = "1049247424";
@@ -265,7 +278,7 @@
             <img src="${imagePath}" alt="${nombre}" class="product-img" />
             <h3>${nombre}</h3>
             <p><strong>SKU:</strong> ${sku}</p>
-            <p class="price">₡${parseFloat(precio).toFixed(2)}</p>
+            <p class="price">₡${Math.round(precio)}</p>
             <p><strong>Unidad:</strong> ${unidad}</p>
             <div class="quantity">
               <button class="minus">−</button>
@@ -289,15 +302,20 @@
       document.querySelectorAll('.add-to-cart').forEach(btn => {
         btn.addEventListener('click', () => {
           const card = btn.closest('.product-card');
-          // Use only SKU for cart key; qty input for amount
           const sku = card.querySelector('p strong').nextSibling.textContent.trim();
-          const input = card.querySelector('input');
-          const qty = parseInt(input.value);
-          cartCount += qty;
-          document.getElementById('cart-count').textContent = cartCount;
-          let cart = JSON.parse(localStorage.getItem('cart')) || [];
-          cart.push({ sku, quantity: qty });
-          localStorage.setItem('cart', JSON.stringify(cart));
+          const name = card.querySelector('h3').textContent.trim();
+          const price = parseFloat(card.querySelector('.price').textContent.replace(/[₡,]/g, ''));
+          const quantity = parseInt(card.querySelector('input').value);
+
+          const existing = cart.find(item => item.sku === sku);
+          if (existing) {
+            existing.quantity += quantity;
+          } else {
+            cart.push({ sku, name, price, quantity });
+          }
+
+          saveCart();
+          updateCartCount();
         });
       });
 
