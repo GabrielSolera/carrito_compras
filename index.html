@@ -332,12 +332,151 @@
 
   <header>
     <img src="logo-oakberry.png" alt="Oakberry Logo">
-    <div class="cart-icon" onclick="toggleCart(true)" style="cursor:pointer;">🛒 <span id="cart-count">0</span></div>
+    <div style="display: flex; align-items: center; gap: 16px;">
+      <button id="store-select-btn" style="font-size: 16px; background: #fff; border: 1px solid #3d0c4e; color: #3d0c4e; border-radius: 5px; padding: 7px 15px; cursor: pointer; display: flex; align-items: center; gap: 7px;">
+        🛍️ <span id="selected-store-label">Seleccionar tienda</span>
+      </button>
+      <div class="cart-icon" onclick="toggleCart(true)" style="cursor:pointer;">🛒 <span id="cart-count">0</span></div>
+    </div>
   </header>
 
   <div class="product-container"></div>
 
+  <!-- Store selection modal -->
+  <div id="store-modal" style="display:none; position:fixed; z-index:1100; left:0; top:0; width:100vw; height:100vh; background:rgba(0,0,0,0.25); align-items:center; justify-content:center;">
+    <div style="background: #fff; border-radius: 10px; padding: 25px 28px; min-width: 300px; box-shadow: 0 2px 16px rgba(0,0,0,0.18); position:relative;">
+      <div style="font-size: 20px; font-weight: bold; color: #3d0c4e; margin-bottom: 18px; display: flex; align-items: center; gap: 6px;">
+        🏬 Selecciona tu tienda
+      </div>
+      <ul id="store-list" style="list-style:none; padding:0; margin:0;">
+        <!-- Store options injected by JS -->
+      </ul>
+      <button id="close-store-modal" style="position:absolute; top:10px; right:13px; background:none; border:none; font-size:19px; color:#999; cursor:pointer;">×</button>
+    </div>
+  </div>
+
+  <!-- Delivery address display -->
+  <div id="delivery-address-bar" style="background: #f4e6fa; color: #3d0c4e; font-weight: 500; font-size: 16px; padding: 13px 30px; display: flex; align-items: center; gap: 8px;">
+    <span style="font-size:18px;">📦</span>
+    <span><span style="font-weight:600;">Dirección de entrega:</span>
+    <span id="delivery-address-value" style="margin-left:7px; color:#3d0c4e;"></span>
+    </span>
+  </div>
+
   <script>
+    // Store data
+    const STORES = [
+      {
+        name: "City Mall",
+        address: "Centro Comercial City Mall Alajuela, Nivel 2"
+      },
+      {
+        name: "Avenida Escazú",
+        address: "Avenida Escazú, Local 102 Edificio 202"
+      },
+      {
+        name: "Guachipelín",
+        address: "Centro Comercial calle real en Guachipelín de Escazú, local 2"
+      },
+      {
+        name: "Oak Truck",
+        address: "Centro comercial Aleste, Curridabat"
+      },
+      {
+        name: "Santa Ana Town Center",
+        address: "Plaza Town Center, Calle Margarita Norte, Ave 3., Santa Ana"
+      }
+    ];
+    // Store selection logic
+    function getSelectedStore() {
+      try {
+        const raw = localStorage.getItem('selectedStore');
+        if (!raw) return null;
+        const obj = JSON.parse(raw);
+        if (!obj || !obj.name) return null;
+        return obj;
+      } catch(e) { return null; }
+    }
+    function setSelectedStore(storeObj) {
+      if (!storeObj || !storeObj.name) return;
+      localStorage.setItem('selectedStore', JSON.stringify(storeObj));
+    }
+    function updateStoreDisplay() {
+      const store = getSelectedStore();
+      const label = document.getElementById('selected-store-label');
+      const addr = document.getElementById('delivery-address-value');
+      if (store) {
+        label.textContent = store.name;
+        addr.textContent = store.address;
+      } else {
+        label.textContent = "Seleccionar tienda";
+        addr.textContent = "No seleccionada";
+      }
+    }
+    function showStoreModal(show) {
+      document.getElementById('store-modal').style.display = show ? 'flex' : 'none';
+    }
+    function renderStoreList() {
+      const ul = document.getElementById('store-list');
+      ul.innerHTML = '';
+      const selected = getSelectedStore();
+      STORES.forEach(store => {
+        const li = document.createElement('li');
+        li.style.marginBottom = '10px';
+        li.style.padding = '0';
+        const btn = document.createElement('button');
+        btn.textContent = store.name;
+        btn.style.width = '100%';
+        btn.style.background = selected && selected.name === store.name ? '#3d0c4e' : '#f4e6fa';
+        btn.style.color = selected && selected.name === store.name ? '#fff' : '#3d0c4e';
+        btn.style.border = '1px solid #3d0c4e';
+        btn.style.borderRadius = '5px';
+        btn.style.fontSize = '15px';
+        btn.style.fontWeight = '600';
+        btn.style.padding = '12px 10px';
+        btn.style.cursor = 'pointer';
+        btn.style.transition = 'background 0.15s';
+        btn.addEventListener('click', () => {
+          setSelectedStore(store);
+          updateStoreDisplay();
+          showStoreModal(false);
+        });
+        li.appendChild(btn);
+        ul.appendChild(li);
+      });
+    }
+    // Setup store selection UI
+    document.addEventListener('DOMContentLoaded', () => {
+      // Delivery address bar: move below header
+      const header = document.querySelector('header');
+      const addrBar = document.getElementById('delivery-address-bar');
+      if (header && addrBar && header.nextSibling !== addrBar) {
+        header.parentNode.insertBefore(addrBar, header.nextSibling);
+      }
+      updateStoreDisplay();
+      // Open modal on button click
+      document.getElementById('store-select-btn').addEventListener('click', () => {
+        renderStoreList();
+        showStoreModal(true);
+      });
+      // Close modal
+      document.getElementById('close-store-modal').addEventListener('click', () => {
+        showStoreModal(false);
+      });
+      // Hide modal on outside click
+      document.getElementById('store-modal').addEventListener('click', (e) => {
+        if (e.target === document.getElementById('store-modal')) showStoreModal(false);
+      });
+      // On load, if no store selected, prompt user to select store
+      if (!getSelectedStore()) {
+        setTimeout(() => {
+          renderStoreList();
+          showStoreModal(true);
+        }, 400);
+      }
+    });
+    // On page load, always update store display (in case of refresh)
+    updateStoreDisplay();
     // Authentication and registration logic
     let isRegistering = false;
 
@@ -728,6 +867,7 @@
         renderCart();
         updateCartCount();
       }
+      updateStoreDisplay();
     });
 
     // Process purchase button click
