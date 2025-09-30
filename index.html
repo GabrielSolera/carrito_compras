@@ -332,13 +332,6 @@
 
   <header>
     <img src="logo-oakberry.png" alt="Oakberry Logo">
-    <nav>
-      <a href="#">Start</a>
-      <a href="#">Enterprise</a>
-      <a href="#">Segment</a>
-      <a href="#">Brands</a>
-      <a href="#">Contact</a>
-    </nav>
     <div class="cart-icon" onclick="toggleCart(true)" style="cursor:pointer;">🛒 <span id="cart-count">0</span></div>
   </header>
 
@@ -454,7 +447,8 @@
     let cart = loadCart();
 
     function updateCartCount() {
-      const count = cart.reduce((acc, item) => acc + item.qty, 0);
+      // Also update the cart total in the cart icon if desired in the future
+      const count = cart.reduce((acc, item) => acc + (parseInt(item.qty) || 0), 0);
       document.getElementById('cart-count').textContent = count;
     }
 
@@ -526,42 +520,146 @@
       }
     }
 
+    function formatCurrencyCR(amount) {
+      // Always show as ₡ with thousand separators, no decimals
+      return '₡' + Number(amount).toLocaleString('es-CR', { maximumFractionDigits: 0 });
+    }
+
     function renderCart() {
       const cartList = document.getElementById("cart-items");
       cartList.innerHTML = "";
       let subtotal = 0;
-
       cart.forEach((item, i) => {
-        if (typeof item.price === 'undefined' || typeof item.qty === 'undefined') return;
+        // Validate product data
+        if (
+          typeof item.price === 'undefined' ||
+          typeof item.qty === 'undefined' ||
+          isNaN(parseFloat(item.price)) ||
+          isNaN(parseInt(item.qty))
+        ) return;
         const unitPrice = parseFloat(item.price);
         const quantity = parseInt(item.qty);
-        if (isNaN(unitPrice) || isNaN(quantity)) return;
         const totalItem = unitPrice * quantity;
         subtotal += totalItem;
 
+        // Layout: image left, details center, subtotal right, controls below details
         const li = document.createElement("li");
         li.className = 'cart-item';
-
-        li.innerHTML = `
-          <div class="cart-item-name">${item.name}</div>
-          <div class="cart-item-price">₡${totalItem.toFixed(0)}</div>
-          <div class="cart-item-remove" title="Eliminar" onclick="removeFromCart(${i})">🗑️</div>
-          <div class="cart-item-qty">
-            <button onclick="changeQuantity(${i}, -1)" aria-label="Disminuir cantidad">−</button>
-            <input type="text" value="${quantity}" readonly aria-label="Cantidad" />
-            <button onclick="changeQuantity(${i}, 1)" aria-label="Aumentar cantidad">+</button>
-          </div>
-        `;
+        li.style.display = 'flex';
+        li.style.alignItems = 'center';
+        li.style.gap = '10px';
+        li.style.padding = '12px 0';
+        li.style.borderBottom = '1px solid #eee';
+        // Product image
+        const imgDiv = document.createElement('div');
+        imgDiv.style.flex = '0 0 60px';
+        imgDiv.style.display = 'flex';
+        imgDiv.style.alignItems = 'center';
+        imgDiv.style.justifyContent = 'center';
+        const img = document.createElement('img');
+        img.src = (item.sku ? item.sku.toUpperCase() : '') + '.png';
+        img.alt = item.name || '';
+        img.style.width = '54px';
+        img.style.height = '54px';
+        img.style.objectFit = 'contain';
+        img.style.borderRadius = '7px';
+        imgDiv.appendChild(img);
+        // Details (name, SKU, qty controls)
+        const detailsDiv = document.createElement('div');
+        detailsDiv.style.flex = '1 1 auto';
+        detailsDiv.style.display = 'flex';
+        detailsDiv.style.flexDirection = 'column';
+        // Name
+        const nameDiv = document.createElement('div');
+        nameDiv.textContent = item.name || '';
+        nameDiv.style.fontWeight = 'bold';
+        nameDiv.style.fontSize = '15px';
+        nameDiv.style.color = '#3d0c4e';
+        nameDiv.style.marginBottom = '3px';
+        detailsDiv.appendChild(nameDiv);
+        // SKU and quantity
+        const infoDiv = document.createElement('div');
+        infoDiv.style.fontSize = '12px';
+        infoDiv.style.color = '#333';
+        infoDiv.textContent = (item.sku ? 'SKU: ' + item.sku + ' | ' : '') + 'Cantidad: ' + quantity;
+        detailsDiv.appendChild(infoDiv);
+        // Quantity controls
+        const qtyDiv = document.createElement('div');
+        qtyDiv.style.marginTop = '6px';
+        qtyDiv.style.display = 'flex';
+        qtyDiv.style.alignItems = 'center';
+        // Minus button
+        const minusBtn = document.createElement('button');
+        minusBtn.textContent = '−';
+        minusBtn.style.backgroundColor = '#3d0c4e';
+        minusBtn.style.color = 'white';
+        minusBtn.style.border = 'none';
+        minusBtn.style.width = '28px';
+        minusBtn.style.height = '28px';
+        minusBtn.style.fontSize = '18px';
+        minusBtn.style.cursor = 'pointer';
+        minusBtn.style.borderRadius = '3px';
+        minusBtn.onclick = function() { changeQuantity(i, -1); };
+        qtyDiv.appendChild(minusBtn);
+        // Qty input
+        const qtyInput = document.createElement('input');
+        qtyInput.type = 'text';
+        qtyInput.value = quantity;
+        qtyInput.readOnly = true;
+        qtyInput.style.width = '40px';
+        qtyInput.style.textAlign = 'center';
+        qtyInput.style.border = '1px solid #ccc';
+        qtyInput.style.height = '28px';
+        qtyInput.style.fontSize = '14px';
+        qtyInput.style.margin = '0 4px';
+        qtyInput.style.background = '#f9f9f9';
+        qtyInput.style.borderRadius = '3px';
+        qtyDiv.appendChild(qtyInput);
+        // Plus button
+        const plusBtn = document.createElement('button');
+        plusBtn.textContent = '+';
+        plusBtn.style.backgroundColor = '#3d0c4e';
+        plusBtn.style.color = 'white';
+        plusBtn.style.border = 'none';
+        plusBtn.style.width = '28px';
+        plusBtn.style.height = '28px';
+        plusBtn.style.fontSize = '18px';
+        plusBtn.style.cursor = 'pointer';
+        plusBtn.style.borderRadius = '3px';
+        plusBtn.onclick = function() { changeQuantity(i, 1); };
+        qtyDiv.appendChild(plusBtn);
+        detailsDiv.appendChild(qtyDiv);
+        // Subtotal right
+        const priceDiv = document.createElement('div');
+        priceDiv.textContent = formatCurrencyCR(totalItem);
+        priceDiv.style.fontWeight = 'bold';
+        priceDiv.style.fontSize = '16px';
+        priceDiv.style.color = '#3d0c4e';
+        priceDiv.style.marginLeft = '10px';
+        priceDiv.style.whiteSpace = 'nowrap';
+        // Remove button
+        const removeDiv = document.createElement('div');
+        removeDiv.title = 'Eliminar';
+        removeDiv.textContent = '🗑️';
+        removeDiv.style.color = 'red';
+        removeDiv.style.cursor = 'pointer';
+        removeDiv.style.fontSize = '18px';
+        removeDiv.style.marginLeft = '12px';
+        removeDiv.onclick = function() { removeFromCart(i); };
+        // Layout: [img][details][price][remove]
+        li.appendChild(imgDiv);
+        li.appendChild(detailsDiv);
+        li.appendChild(priceDiv);
+        li.appendChild(removeDiv);
         cartList.appendChild(li);
       });
-
       const iva = subtotal * 0.13;
       const total = subtotal + iva;
-
-      document.getElementById("subtotal").textContent = `₡${subtotal.toFixed(0)}`;
-      document.getElementById("iva").textContent = `₡${iva.toFixed(0)}`;
-      document.getElementById("total").textContent = `₡${total.toFixed(0)}`;
-      document.getElementById("cart-count").textContent = cart.reduce((acc, item) => acc + item.qty, 0);
+      document.getElementById("subtotal").textContent = formatCurrencyCR(subtotal);
+      document.getElementById("iva").textContent = formatCurrencyCR(iva);
+      document.getElementById("total").textContent = formatCurrencyCR(total);
+      document.getElementById("cart-count").textContent = cart.reduce((acc, item) => acc + (parseInt(item.qty) || 0), 0);
+      // Update cart icon total in header if needed (optional)
     }
 
     function removeFromCart(index) {
@@ -597,7 +695,7 @@
           // Check if product already in cart
           const index = cart.findIndex(item => item.sku === sku);
           if(index !== -1) {
-            cart[index].qty += qty;
+            cart[index].qty = (parseInt(cart[index].qty) || 0) + qty;
           } else {
             cart.push({ name, sku, price, qty });
           }
@@ -652,15 +750,15 @@
 
   <div id="cart-sidebar" style="flex-direction: column;">
     <h3>Carrito</h3>
-    <ul id="cart-items"></ul>
+    <ul id="cart-items" style="padding: 0; margin: 0;"></ul>
     <div class="cart-totals">
       <div><span>Subtotal:</span><span id="subtotal">₡0</span></div>
       <div><span>IVA (13%):</span><span id="iva">₡0</span></div>
       <div><strong>Total:</strong><strong id="total">₡0</strong></div>
     </div>
-    <div class="cart-footer">
+    <div class="cart-footer" style="justify-content: flex-end;">
       <button id="close-cart" onclick="toggleCart(false)">Cerrar</button>
-      <button id="process-cart">Procesar compra</button>
+      <button id="process-cart" style="background: #d32f2f; color: #fff; font-weight: bold; margin-left: 10px; min-width: 160px;">Procesar compra</button>
     </div>
   </div>
 </body>
