@@ -129,7 +129,7 @@
       color: #3d0c4e;
     }
     #cart-sidebar button.process-purchase {
-      background-color: red;
+      background-color: #d32f2f;
       color: white;
       border: none;
       padding: 10px 15px;
@@ -141,6 +141,19 @@
       display: flex;
       justify-content: flex-end;
       margin-top: 20px;
+    }
+    #cart-sidebar .cart-totals {
+      margin-top: 15px;
+      border-top: 1px solid #ddd;
+      padding-top: 10px;
+      color: #3d0c4e;
+      font-weight: bold;
+      font-size: 16px;
+    }
+    #cart-sidebar .cart-totals div {
+      display: flex;
+      justify-content: space-between;
+      margin: 4px 0;
     }
     #login-modal {
       position:fixed; 
@@ -173,6 +186,17 @@
   </style>
 </head>
 <body>
+  <div id="login-modal">
+    <form id="login-form" onsubmit="registrarse(event)">
+      <h3 style="margin-bottom:10px;">Registro / Ingreso</h3>
+      <input type="text" placeholder="Nombre de tienda" name="tienda" required />
+      <input type="text" placeholder="Sociedad" name="sociedad" required />
+      <input type="text" placeholder="Celular" name="celular" required />
+      <input type="email" placeholder="Correo" name="correo" required />
+      <button type="submit">Enviar</button>
+    </form>
+  </div>
+
   <header>
     <img src="logo-oakberry.png" alt="Oakberry Logo">
     <nav>
@@ -188,6 +212,7 @@
   <div class="product-container"></div>
 
   <script>
+    // Load cart from localStorage or initialize empty
     let cart = JSON.parse(localStorage.getItem("cart")) || [];
     let cartCount = cart.reduce((total, item) => total + item.quantity, 0);
     document.getElementById('cart-count').textContent = cartCount;
@@ -260,10 +285,17 @@
             cart.push({ sku, name, price, quantity });
           }
 
+          // Store each cart item in localStorage with sku as key
+          cart.forEach(item => {
+            localStorage.setItem(`cart_${item.sku}`, JSON.stringify(item));
+          });
+
+          // Also store entire cart as JSON string
+          localStorage.setItem("cart", JSON.stringify(cart));
+
           cartCount = cart.reduce((total, item) => total + item.quantity, 0);
           document.getElementById('cart-count').textContent = cartCount;
 
-          localStorage.setItem("cart", JSON.stringify(cart));
           renderCartItems();
         });
       });
@@ -293,8 +325,10 @@
       const cartContainer = document.getElementById('cart-items');
       cartContainer.innerHTML = '';
 
+      let subtotal = 0;
       cart.forEach((item, index) => {
-        const subtotal = item.price * item.quantity;
+        const itemSubtotal = item.price * item.quantity;
+        subtotal += itemSubtotal;
         const imgSrc = `${item.sku.toUpperCase()}.png`;
 
         const cartItem = document.createElement('div');
@@ -304,14 +338,14 @@
           <img src="${imgSrc}" alt="${item.name}" class="cart-item-img" />
           <div class="cart-item-details">
             <h4>${item.name}</h4>
-            <p class="price">₡${item.price.toLocaleString('fr-FR', { minimumFractionDigits: 0 })}</p>
+            <p class="price">₡${item.price.toFixed(0)}</p>
             <div class="quantity">
               <button class="minus">−</button>
               <input type="text" value="${item.quantity}" readonly>
               <button class="plus">+</button>
             </div>
           </div>
-          <div class="cart-item-subtotal">₡${subtotal.toLocaleString('fr-FR', { minimumFractionDigits: 0 })}</div>
+          <div class="cart-item-subtotal">₡${itemSubtotal.toFixed(0)}</div>
         `;
 
         // Attach quantity button events
@@ -325,6 +359,8 @@
             qtyInput.value = item.quantity;
             updateCartCount();
             localStorage.setItem("cart", JSON.stringify(cart));
+            // Update individual sku key storage
+            localStorage.setItem(`cart_${item.sku}`, JSON.stringify(item));
             renderCartItems();
           }
         });
@@ -334,11 +370,28 @@
           qtyInput.value = item.quantity;
           updateCartCount();
           localStorage.setItem("cart", JSON.stringify(cart));
+          localStorage.setItem(`cart_${item.sku}`, JSON.stringify(item));
           renderCartItems();
         });
 
         cartContainer.appendChild(cartItem);
       });
+
+      // Calculate tax and total
+      const iva = subtotal * 0.13;
+      const total = subtotal + iva;
+
+      let totalsDiv = document.querySelector('#cart-sidebar .cart-totals');
+      if (!totalsDiv) {
+        totalsDiv = document.createElement('div');
+        totalsDiv.className = 'cart-totals';
+        document.getElementById('cart-sidebar').appendChild(totalsDiv);
+      }
+      totalsDiv.innerHTML = `
+        <div><span>Subtotal:</span><span>₡${subtotal.toFixed(0)}</span></div>
+        <div><span>IVA 13%:</span><span>₡${iva.toFixed(0)}</span></div>
+        <div><span>Total:</span><span>₡${total.toFixed(0)}</span></div>
+      `;
     }
 
     function toggleCart() {
@@ -351,41 +404,40 @@
       document.getElementById("cart-sidebar").style.right = "-350px";
     }
 
-    // Login modal logic
-    const loginModal = document.getElementById('login-modal');
-    const loginForm = document.getElementById('login-form');
+    function registrarse(event) {
+      event.preventDefault();
+      const form = event.target;
+      const tienda = form.tienda.value.trim();
+      const sociedad = form.sociedad.value.trim();
+      const celular = form.celular.value.trim();
+      const correo = form.correo.value.trim();
+
+      if (!tienda || !sociedad || !celular || !correo) {
+        alert('Por favor, complete todos los campos.');
+        return;
+      }
+
+      const subject = encodeURIComponent('Registro de usuario Oakberry');
+      const body = encodeURIComponent(
+        `Nombre de tienda: ${tienda}\n` +
+        `Sociedad: ${sociedad}\n` +
+        `Celular: ${celular}\n` +
+        `Correo: ${correo}`
+      );
+
+      // Open mail client with mailto link
+      const mailtoLink = `mailto:gabriel.solera@oaklatam.com?subject=${subject}&body=${body}`;
+      window.location.href = mailtoLink;
+
+      alert("Se ha abierto su cliente de correo para enviar la solicitud.");
+
+      // Hide modal and enable page scrolling
+      document.getElementById('login-modal').style.display = 'none';
+      document.body.style.overflow = 'auto';
+    }
 
     // Prevent interaction with page until login is done
     document.body.style.overflow = 'hidden';
-
-    loginForm.addEventListener('submit', function(e) {
-      e.preventDefault();
-
-      const formData = new FormData(loginForm);
-      const data = {
-        tienda: formData.getAll('')[0] || loginForm.querySelector('input[placeholder="Nombre de tienda"]').value,
-        sociedad: formData.getAll('')[1] || loginForm.querySelector('input[placeholder="Sociedad"]').value,
-        celular: formData.getAll('')[2] || loginForm.querySelector('input[placeholder="Celular"]').value,
-        correo: formData.getAll('')[3] || loginForm.querySelector('input[placeholder="Correo"]').value
-      };
-
-      // Simulate sending data to webhook
-      fetch('https://webhook.site/your-unique-url', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      }).then(response => {
-        if(response.ok) {
-          alert("Solicitud enviada a gabriel.solera@oaklatam.com");
-          loginModal.style.display = 'none';
-          document.body.style.overflow = 'auto';
-        } else {
-          alert("Error al enviar la solicitud. Intente nuevamente.");
-        }
-      }).catch(() => {
-        alert("Error al enviar la solicitud. Intente nuevamente.");
-      });
-    });
 
     window.addEventListener('load', () => {
       // Add "Procesar Compra" button next to close button inside cart sidebar
@@ -414,6 +466,7 @@
       const processBtn = document.createElement('button');
       processBtn.textContent = 'Procesar Compra';
       processBtn.className = 'process-purchase';
+      processBtn.style.backgroundColor = '#d32f2f';
       processBtn.addEventListener('click', () => {
         if(cart.length === 0){
           alert('El carrito está vacío.');
@@ -422,6 +475,12 @@
         alert('Compra procesada. Gracias por su compra.');
         cart = [];
         localStorage.setItem('cart', JSON.stringify(cart));
+        // Remove individual sku keys from localStorage
+        Object.keys(localStorage).forEach(key => {
+          if(key.startsWith('cart_')) {
+            localStorage.removeItem(key);
+          }
+        });
         updateCartCount();
         renderCartItems();
         closeCart();
@@ -435,17 +494,6 @@
   <div id="cart-sidebar" style="position: fixed; top: 0; right: -350px; width: 350px; height: 100%; background-color: white; box-shadow: -2px 0 5px rgba(0,0,0,0.2); z-index: 1000; overflow-y: auto; transition: right 0.3s ease; padding: 25px;">
     <h2 style="margin-top: 0;">Carrito</h2>
     <div id="cart-items"></div>
-  </div>
-
-  <div id="login-modal">
-    <form id="login-form">
-      <h3 style="margin-bottom:10px;">Registro / Ingreso</h3>
-      <input type="text" placeholder="Nombre de tienda" name="tienda" required />
-      <input type="text" placeholder="Sociedad" name="sociedad" required />
-      <input type="text" placeholder="Celular" name="celular" required />
-      <input type="email" placeholder="Correo" name="correo" required />
-      <button type="submit">Enviar</button>
-    </form>
   </div>
 </body>
 </html>
