@@ -362,6 +362,138 @@
     <span id="delivery-address-value" style="margin-left:7px; color:#3d0c4e;"></span>
     </span>
   </div>
+  <!-- Script para lógica de selección de tiendas -->
+  <script>
+    // Datos de tiendas
+    const STORES_DATA = [
+      {
+        name: "City Mall",
+        address: "Centro Comercial City Mall Alajuela, Nivel 2"
+      },
+      {
+        name: "Avenida Escazú",
+        address: "Avenida Escazú, Local 102 Edificio 202"
+      },
+      {
+        name: "Guachipelín",
+        address: "Centro Comercial calle real en Guachipelín de Escazú, local 2"
+      },
+      {
+        name: "Oak Truck",
+        address: "Centro comercial Aleste, Curridabat"
+      },
+      {
+        name: "Santa Ana Town Center",
+        address: "Plaza Town Center, Calle Margarita Norte, Ave 3., Santa Ana"
+      }
+    ];
+
+    // Obtener tienda seleccionada de localStorage
+    function getSelectedStore_v2() {
+      try {
+        const raw = localStorage.getItem('selectedStore');
+        if (!raw) return null;
+        const obj = JSON.parse(raw);
+        if (!obj || !obj.name) return null;
+        return obj;
+      } catch(e) { return null; }
+    }
+    // Establecer tienda seleccionada en localStorage
+    function setSelectedStore_v2(storeObj) {
+      if (!storeObj || !storeObj.name) return;
+      localStorage.setItem('selectedStore', JSON.stringify(storeObj));
+    }
+    // Actualizar etiquetas de tienda y dirección
+    function updateStoreDisplay_v2() {
+      const store = getSelectedStore_v2();
+      const label = document.getElementById('selected-store-label');
+      const addr = document.getElementById('delivery-address-value');
+      if (store) {
+        label.textContent = store.name;
+        addr.textContent = store.address;
+      } else {
+        label.textContent = "Seleccionar tienda";
+        addr.textContent = "No seleccionada";
+      }
+    }
+    // Mostrar/ocultar modal de tiendas
+    function showStoreModal_v2(show) {
+      document.getElementById('store-modal').style.display = show ? 'flex' : 'none';
+    }
+    // Renderizar lista de tiendas en el modal
+    function renderStoreList_v2() {
+      const ul = document.getElementById('store-list');
+      ul.innerHTML = '';
+      const selected = getSelectedStore_v2();
+      STORES_DATA.forEach(store => {
+        const li = document.createElement('li');
+        li.style.marginBottom = '10px';
+        li.style.padding = '0';
+        // Botón con nombre y dirección
+        const btn = document.createElement('button');
+        btn.style.width = '100%';
+        btn.style.background = selected && selected.name === store.name ? '#3d0c4e' : '#f4e6fa';
+        btn.style.color = selected && selected.name === store.name ? '#fff' : '#3d0c4e';
+        btn.style.border = '1px solid #3d0c4e';
+        btn.style.borderRadius = '5px';
+        btn.style.fontSize = '15px';
+        btn.style.fontWeight = '600';
+        btn.style.padding = '12px 10px';
+        btn.style.cursor = 'pointer';
+        btn.style.transition = 'background 0.15s';
+        btn.style.display = 'flex';
+        btn.style.flexDirection = 'column';
+        btn.style.alignItems = 'flex-start';
+        // Nombre
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = store.name;
+        nameSpan.style.fontWeight = 'bold';
+        // Dirección
+        const addrSpan = document.createElement('span');
+        addrSpan.textContent = store.address;
+        addrSpan.style.fontWeight = 'normal';
+        addrSpan.style.fontSize = '13px';
+        addrSpan.style.marginTop = '2px';
+        addrSpan.style.color = '#653a7a';
+        btn.appendChild(nameSpan);
+        btn.appendChild(addrSpan);
+        btn.addEventListener('click', () => {
+          setSelectedStore_v2(store);
+          updateStoreDisplay_v2();
+          showStoreModal_v2(false);
+        });
+        li.appendChild(btn);
+        ul.appendChild(li);
+      });
+    }
+    // Eliminar textos repetidos o innecesarios sobre el listado si existieran
+    document.addEventListener('DOMContentLoaded', () => {
+      // El modal ya tiene solo un título, no hay textos repetidos por defecto.
+      // Si hubiera, aquí podríamos removerlos.
+      // Configuración de eventos:
+      document.getElementById('store-select-btn').addEventListener('click', () => {
+        renderStoreList_v2();
+        showStoreModal_v2(true);
+      });
+      document.getElementById('close-store-modal').addEventListener('click', () => {
+        showStoreModal_v2(false);
+      });
+      document.getElementById('store-modal').addEventListener('click', (e) => {
+        if (e.target === document.getElementById('store-modal')) showStoreModal_v2(false);
+      });
+      // Inicializar visualización
+      updateStoreDisplay_v2();
+      // Si no hay tienda seleccionada, pedir selección
+      if (!getSelectedStore_v2()) {
+        setTimeout(() => {
+          renderStoreList_v2();
+          showStoreModal_v2(true);
+        }, 400);
+      }
+    });
+    // Actualizar visualización al cargar
+    window.addEventListener('DOMContentLoaded', updateStoreDisplay_v2);
+  </script>
 
   <script>
     // Store data
@@ -416,35 +548,35 @@
     function showStoreModal(show) {
       document.getElementById('store-modal').style.display = show ? 'flex' : 'none';
     }
-    function renderStoreList() {
-      const ul = document.getElementById('store-list');
-      ul.innerHTML = '';
-      const selected = getSelectedStore();
-      STORES.forEach(store => {
-        const li = document.createElement('li');
-        li.style.marginBottom = '10px';
-        li.style.padding = '0';
-        const btn = document.createElement('button');
-        btn.textContent = store.name;
-        btn.style.width = '100%';
-        btn.style.background = selected && selected.name === store.name ? '#3d0c4e' : '#f4e6fa';
-        btn.style.color = selected && selected.name === store.name ? '#fff' : '#3d0c4e';
-        btn.style.border = '1px solid #3d0c4e';
-        btn.style.borderRadius = '5px';
-        btn.style.fontSize = '15px';
-        btn.style.fontWeight = '600';
-        btn.style.padding = '12px 10px';
-        btn.style.cursor = 'pointer';
-        btn.style.transition = 'background 0.15s';
-        btn.addEventListener('click', () => {
-          setSelectedStore(store);
-          updateStoreDisplay();
-          showStoreModal(false);
-        });
-        li.appendChild(btn);
-        ul.appendChild(li);
-      });
-    }
+    // function renderStoreList() {
+    //   const ul = document.getElementById('store-list');
+    //   ul.innerHTML = '';
+    //   const selected = getSelectedStore();
+    //   STORES.forEach(store => {
+    //     const li = document.createElement('li');
+    //     li.style.marginBottom = '10px';
+    //     li.style.padding = '0';
+    //     const btn = document.createElement('button');
+    //     btn.textContent = store.name;
+    //     btn.style.width = '100%';
+    //     btn.style.background = selected && selected.name === store.name ? '#3d0c4e' : '#f4e6fa';
+    //     btn.style.color = selected && selected.name === store.name ? '#fff' : '#3d0c4e';
+    //     btn.style.border = '1px solid #3d0c4e';
+    //     btn.style.borderRadius = '5px';
+    //     btn.style.fontSize = '15px';
+    //     btn.style.fontWeight = '600';
+    //     btn.style.padding = '12px 10px';
+    //     btn.style.cursor = 'pointer';
+    //     btn.style.transition = 'background 0.15s';
+    //     btn.addEventListener('click', () => {
+    //       setSelectedStore(store);
+    //       updateStoreDisplay();
+    //       showStoreModal(false);
+    //     });
+    //     li.appendChild(btn);
+    //     ul.appendChild(li);
+    //   });
+    // }
     // Setup store selection UI
     document.addEventListener('DOMContentLoaded', () => {
       // Delivery address bar: move below header
@@ -455,28 +587,28 @@
       }
       updateStoreDisplay();
       // Open modal on button click
-      document.getElementById('store-select-btn').addEventListener('click', () => {
-        renderStoreList();
-        showStoreModal(true);
-      });
-      // Close modal
-      document.getElementById('close-store-modal').addEventListener('click', () => {
-        showStoreModal(false);
-      });
-      // Hide modal on outside click
-      document.getElementById('store-modal').addEventListener('click', (e) => {
-        if (e.target === document.getElementById('store-modal')) showStoreModal(false);
-      });
-      // On load, if no store selected, prompt user to select store
-      if (!getSelectedStore()) {
-        setTimeout(() => {
-          renderStoreList();
-          showStoreModal(true);
-        }, 400);
-      }
+      // document.getElementById('store-select-btn').addEventListener('click', () => {
+      //   renderStoreList();
+      //   showStoreModal(true);
+      // });
+      // // Close modal
+      // document.getElementById('close-store-modal').addEventListener('click', () => {
+      //   showStoreModal(false);
+      // });
+      // // Hide modal on outside click
+      // document.getElementById('store-modal').addEventListener('click', (e) => {
+      //   if (e.target === document.getElementById('store-modal')) showStoreModal(false);
+      // });
+      // // On load, if no store selected, prompt user to select store
+      // if (!getSelectedStore()) {
+      //   setTimeout(() => {
+      //     renderStoreList();
+      //     showStoreModal(true);
+      //   }, 400);
+      // }
     });
     // On page load, always update store display (in case of refresh)
-    updateStoreDisplay();
+    // updateStoreDisplay();
     // Authentication and registration logic
     let isRegistering = false;
 
