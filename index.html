@@ -334,22 +334,19 @@
     <img src="logo-oakberry.png" alt="Oakberry Logo">
     <div style="display: flex; align-items: center; gap: 16px;">
       <!-- Store select button with FontAwesome icon fallback to emoji if not loaded -->
-      <!-- NUEVO BLOQUE DE TIENDA Y DIRECCION -->
-      <div style="display: flex; align-items: center; gap: 10px; margin: 10px 0;">
-        <button id="storeButton" style="background-color: transparent; border: none; cursor: pointer;">
-          🏬 Tienda
-        </button>
-        <span id="selectedStore" style="font-weight: bold;"></span>
+      <div style="padding: 1em;">
+        <label for="storeSelector">🧱 Tienda:</label>
+        <select id="storeSelector">
+          <option value="City Mall">City Mall</option>
+          <option value="Avenida Escazu">Avenida Escazu</option>
+          <option value="Guachipelin">Guachipelin</option>
+          <option value="Oak Truck">Oak Truck</option>
+          <option value="Santa Ana Town Center">Santa Ana Town Center</option>
+        </select>
+        <p><strong>Dirección de entrega:</strong> <span id="delivery-address"></span></p>
+
+        <button onclick="clearCart()">🧹 Limpiar carrito</button>
       </div>
-      <div id="storeList" style="display: none; margin-bottom: 10px;">
-        <button onclick="selectStore('City Mall')">City Mall</button>
-        <button onclick="selectStore('Avenida Escazu')">Avenida Escazu</button>
-        <button onclick="selectStore('Guachipelin')">Guachipelin</button>
-        <button onclick="selectStore('Oak Truck')">Oak Truck</button>
-        <button onclick="selectStore('Santa Ana Town Center')">Santa Ana Town Center</button>
-      </div>
-      <div id="deliveryAddress" style="font-size: 0.9em; color: #666;"></div>
-      <!-- FIN NUEVO BLOQUE -->
       <div class="cart-icon" onclick="toggleCart(true)" style="cursor:pointer;">🛒 <span id="cart-count">0</span></div>
     </div>
   <!-- FontAwesome CDN for store icon -->
@@ -1052,44 +1049,39 @@
     </div>
   </div>
   <script>
-    // Lógica para tienda y limpiar carrito (adaptada de instrucciones)
-    document.addEventListener('DOMContentLoaded', () => {
-      const storeButton = document.getElementById('storeButton');
-      if (storeButton) {
-        storeButton.addEventListener('click', () => {
-          const storeList = document.getElementById('storeList');
-          storeList.style.display = storeList.style.display === 'block' ? 'none' : 'block';
-        });
+    // Store addresses for dropdown
+    const storeAddresses = {
+      "City Mall": "Centro Comercial City Mall Alajuela, Nivel 2",
+      "Avenida Escazu": "Avenida Escazu, Local 102 Edificio 202",
+      "Guachipelin": "Centro Comercial calle real en Guachipelin de escazu, local 2",
+      "Oak Truck": "Centro comercial aleste, curridabat",
+      "Santa Ana Town Center": "Plaza Town Center, Calle Margarita Norte, Ave 3., Santa Ana"
+    };
+
+    // Store selector logic and delivery address update
+    document.getElementById("storeSelector").addEventListener("change", function () {
+      const selectedStore = this.value;
+      const confirmChange = confirm("¿Está seguro que desea cambiar de tienda? Se borrará el carrito de compras actual.");
+
+      if (confirmChange) {
+        cart = [];
+        localStorage.removeItem("cart");
+        localStorage.setItem("store", selectedStore);
+        updateCartDisplay();
+        document.getElementById("delivery-address").innerText = storeAddresses[selectedStore];
+      } else {
+        this.value = localStorage.getItem("store") || "Guachipelin";
       }
     });
 
-    function selectStore(storeName) {
-      const confirmation = confirm("¿Deseas cambiar de tienda? Esto borrará tu carrito de compras.");
-      if (!confirmation) return;
-
-      localStorage.removeItem('cart');
-      cart = [];
+    window.onload = function () {
+      const savedStore = localStorage.getItem("store") || "Guachipelin";
+      document.getElementById("storeSelector").value = savedStore;
+      document.getElementById("delivery-address").innerText = storeAddresses[savedStore];
       updateCartDisplay();
+    };
 
-      const storeAddresses = {
-        'City Mall': 'Centro Comercial City Mall Alajuela, Nivel 2',
-        'Avenida Escazu': 'Avenida Escazu, Local 102 Edificio 202',
-        'Guachipelin': 'Centro Comercial calle real en Guachipelin de escazu, local 2',
-        'Oak Truck': 'Centro comercial aleste, curridabat',
-        'Santa Ana Town Center': 'Plaza Town Center, Calle Margarita Norte, Ave 3., Santa Ana'
-      };
-
-      localStorage.setItem('selectedStore', storeName);
-      document.getElementById('selectedStore').innerText = storeName;
-      document.getElementById('deliveryAddress').innerText = storeAddresses[storeName];
-    }
-
-    window.addEventListener('load', () => {
-      const savedStore = localStorage.getItem('selectedStore');
-      if (savedStore) selectStore(savedStore);
-    });
-
-    // Asegurar función clearCart
+    // Ensure clearCart and updateCartDisplay still work
     function clearCart() {
       if (confirm("¿Estás seguro de que deseas vaciar el carrito de compras?")) {
         cart = [];
@@ -1098,7 +1090,6 @@
       }
     }
 
-    // updateCartDisplay para mostrar íconos de basurero
     function updateCartDisplay() {
       renderCart();
       updateCartCount();
