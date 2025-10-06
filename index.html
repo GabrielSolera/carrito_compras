@@ -1037,11 +1037,107 @@
       <div><span>IVA (13%):</span><span id="iva">₡0</span></div>
       <div><strong>Total:</strong><strong id="total">₡0</strong></div>
     </div>
+    <!-- Datos del cliente para la orden de compra -->
+    <div id="order-client-fields" style="margin-bottom: 10px; margin-top: 10px;">
+      <input type="text" id="clienteNombre" placeholder="Nombre cliente" style="width: 100%; margin-bottom: 5px; padding: 7px; border-radius:4px; border:1px solid #ccc;">
+      <input type="text" id="clienteSociedad" placeholder="Sociedad cliente" style="width: 100%; margin-bottom: 5px; padding: 7px; border-radius:4px; border:1px solid #ccc;">
+      <input type="email" id="clienteCorreo" placeholder="Correo cliente" style="width: 100%; margin-bottom: 5px; padding: 7px; border-radius:4px; border:1px solid #ccc;">
+      <input type="text" id="clienteCelular" placeholder="Celular cliente" style="width: 100%; margin-bottom: 5px; padding: 7px; border-radius:4px; border:1px solid #ccc;">
+    </div>
     <div class="cart-footer" style="justify-content: flex-end;">
       <button id="close-cart" onclick="toggleCart(false)">Cerrar</button>
       <button id="process-cart" style="background: #d32f2f; color: #fff; font-weight: bold; margin-left: 10px; min-width: 160px;">Procesar compra</button>
+      <button id="procesar-orden-btn" style="background: #3d0c4e; color: #fff; font-weight: bold; margin-left: 10px; min-width: 160px;">Generar OC PDF</button>
     </div>
   </div>
+  <!-- jsPDF library for PDF generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script>
+    // Botón para generar PDF de Orden de Compra
+    document.addEventListener('DOMContentLoaded', function() {
+      const btn = document.getElementById("procesar-orden-btn");
+      if (!btn) return;
+      btn.addEventListener("click", function() {
+        // Usar el mismo array cart que maneja el carrito
+        const carrito = typeof cart !== "undefined" ? cart : [];
+        if (!carrito || carrito.length === 0) {
+          alert("El carrito está vacío.");
+          return;
+        }
+        // Validar campos de cliente
+        const nombre = document.getElementById("clienteNombre").value.trim();
+        const sociedad = document.getElementById("clienteSociedad").value.trim();
+        const correo = document.getElementById("clienteCorreo").value.trim();
+        const celular = document.getElementById("clienteCelular").value.trim();
+        if (!nombre || !sociedad || !correo || !celular) {
+          alert("Por favor complete todos los datos del cliente.");
+          return;
+        }
+        // jsPDF
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        // Consecutivo
+        let consecutivo = parseInt(localStorage.getItem("oc_consecutivo")) || 1;
+        const numOrden = `OC-WEB ${String(consecutivo).padStart(3, "0")}`;
+        localStorage.setItem("oc_consecutivo", consecutivo + 1);
+        // Logo Oakberry en base64 (debe reemplazarse con el real si se desea mejor calidad)
+        const logoBase64 = "iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAYAAACM/rhtAAA..."; // Reemplazar con base64 real si se desea
+        try {
+          doc.addImage(logoBase64, "PNG", 10, 10, 40, 20);
+        } catch(e) {
+          // Si hay error, omitir logo
+        }
+        // Datos fijos de empresa
+        doc.setFontSize(12);
+        doc.text(`ACAI OAK RESTAURANTES`, 150, 15, { align: "right" });
+        doc.text(`CELULAR: 6213-8356`, 150, 22, { align: "right" });
+        doc.text(`ESCAZU, GUACHIPELIN`, 150, 29, { align: "right" });
+        doc.setFontSize(14);
+        doc.text(`ORDEN DE COMPRA`, 105, 40, { align: "center" });
+        doc.setFontSize(11);
+        doc.text(`Consecutivo: ${numOrden}`, 105, 48, { align: "center" });
+        // Cliente
+        doc.setFontSize(11);
+        doc.text(`Cliente: ${nombre}`, 10, 60);
+        doc.text(`Sociedad: ${sociedad}`, 10, 67);
+        doc.text(`Correo: ${correo}`, 10, 74);
+        doc.text(`Celular: ${celular}`, 10, 81);
+        // Tabla productos
+        let y = 95;
+        let subtotal = 0;
+        doc.setFontSize(11);
+        doc.text("Producto", 10, y);
+        doc.text("Cant", 100, y);
+        doc.text("Precio", 120, y);
+        doc.text("Subtotal", 160, y);
+        y += 7;
+        carrito.forEach(item => {
+          // item: { name, sku, price, qty }
+          const sub = (parseFloat(item.price) || 0) * (parseInt(item.qty) || 0);
+          subtotal += sub;
+          doc.text(item.name ? String(item.name) : "", 10, y);
+          doc.text(String(item.qty), 100, y);
+          doc.text(`₡${Number(item.price).toFixed(2)}`, 120, y);
+          doc.text(`₡${sub.toFixed(2)}`, 160, y);
+          y += 7;
+          // Salto si pasa de la hoja
+          if (y > 260) {
+            doc.addPage();
+            y = 20;
+          }
+        });
+        const iva = subtotal * 0.13;
+        const total = subtotal + iva;
+        y += 10;
+        doc.text(`Subtotal: ₡${subtotal.toFixed(2)}`, 140, y);
+        y += 7;
+        doc.text(`IVA (13%): ₡${iva.toFixed(2)}`, 140, y);
+        y += 7;
+        doc.text(`Total: ₡${total.toFixed(2)}`, 140, y);
+        doc.save(`${numOrden}.pdf`);
+      });
+    });
+  </script>
   <script>
     const storeAddresses = {
       "City Mall": "Centro Comercial City Mall Alajuela, Nivel 2",
