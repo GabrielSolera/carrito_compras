@@ -334,11 +334,22 @@
     <img src="logo-oakberry.png" alt="Oakberry Logo">
     <div style="display: flex; align-items: center; gap: 16px;">
       <!-- Store select button with FontAwesome icon fallback to emoji if not loaded -->
-      <button id="store-select-btn" style="font-size: 16px; background: #fff; border: 1px solid #3d0c4e; color: #3d0c4e; border-radius: 5px; padding: 7px 15px; cursor: pointer; display: flex; align-items: center; gap: 7px;">
-        <span class="fa fa-store" style="font-size:18px; margin-right:2px; display:inline-block;"></span>
-        <span style="display:none;" id="store-emoji-fallback">🛍️</span>
-        <span id="selected-store-label">Seleccionar tienda</span>
-      </button>
+      <!-- NUEVO BLOQUE DE TIENDA Y DIRECCION -->
+      <div style="display: flex; align-items: center; gap: 10px; margin: 10px 0;">
+        <button id="storeButton" style="background-color: transparent; border: none; cursor: pointer;">
+          🏬 Tienda
+        </button>
+        <span id="selectedStore" style="font-weight: bold;"></span>
+      </div>
+      <div id="storeList" style="display: none; margin-bottom: 10px;">
+        <button onclick="selectStore('City Mall')">City Mall</button>
+        <button onclick="selectStore('Avenida Escazu')">Avenida Escazu</button>
+        <button onclick="selectStore('Guachipelin')">Guachipelin</button>
+        <button onclick="selectStore('Oak Truck')">Oak Truck</button>
+        <button onclick="selectStore('Santa Ana Town Center')">Santa Ana Town Center</button>
+      </div>
+      <div id="deliveryAddress" style="font-size: 0.9em; color: #666;"></div>
+      <!-- FIN NUEVO BLOQUE -->
       <div class="cart-icon" onclick="toggleCart(true)" style="cursor:pointer;">🛒 <span id="cart-count">0</span></div>
     </div>
   <!-- FontAwesome CDN for store icon -->
@@ -1027,6 +1038,7 @@
   </script>
 
   <div id="cart-sidebar" style="flex-direction: column;">
+    <button onclick="clearCart()" style="background-color: red; color: white; padding: 5px 10px; border: none; margin: 10px;">🗑 Limpiar carrito</button>
     <h3>Carrito</h3>
     <ul id="cart-items" style="padding: 0; margin: 0;"></ul>
     <div class="cart-totals">
@@ -1039,6 +1051,63 @@
       <button id="process-cart" style="background: #d32f2f; color: #fff; font-weight: bold; margin-left: 10px; min-width: 160px;">Procesar compra</button>
     </div>
   </div>
+  <script>
+    // Lógica para tienda y limpiar carrito (adaptada de instrucciones)
+    document.addEventListener('DOMContentLoaded', () => {
+      const storeButton = document.getElementById('storeButton');
+      if (storeButton) {
+        storeButton.addEventListener('click', () => {
+          const storeList = document.getElementById('storeList');
+          storeList.style.display = storeList.style.display === 'block' ? 'none' : 'block';
+        });
+      }
+    });
+
+    function selectStore(storeName) {
+      const confirmation = confirm("¿Deseas cambiar de tienda? Esto borrará tu carrito de compras.");
+      if (!confirmation) return;
+
+      localStorage.removeItem('cart');
+      cart = [];
+      updateCartDisplay();
+
+      const storeAddresses = {
+        'City Mall': 'Centro Comercial City Mall Alajuela, Nivel 2',
+        'Avenida Escazu': 'Avenida Escazu, Local 102 Edificio 202',
+        'Guachipelin': 'Centro Comercial calle real en Guachipelin de escazu, local 2',
+        'Oak Truck': 'Centro comercial aleste, curridabat',
+        'Santa Ana Town Center': 'Plaza Town Center, Calle Margarita Norte, Ave 3., Santa Ana'
+      };
+
+      localStorage.setItem('selectedStore', storeName);
+      document.getElementById('selectedStore').innerText = storeName;
+      document.getElementById('deliveryAddress').innerText = storeAddresses[storeName];
+    }
+
+    window.addEventListener('load', () => {
+      const savedStore = localStorage.getItem('selectedStore');
+      if (savedStore) selectStore(savedStore);
+    });
+
+    // Asegurar función clearCart
+    function clearCart() {
+      if (confirm("¿Estás seguro de que deseas vaciar el carrito de compras?")) {
+        cart = [];
+        localStorage.removeItem('cart');
+        updateCartDisplay();
+      }
+    }
+
+    // updateCartDisplay para mostrar íconos de basurero
+    function updateCartDisplay() {
+      renderCart();
+      updateCartCount();
+      // Forzar íconos basurero a visible
+      document.querySelectorAll('.cart-item-remove, .cart-item .trash-icon').forEach(icon => {
+        icon.style.display = 'inline-block';
+      });
+    }
+  </script>
 </body>
 </html>
   <script>
