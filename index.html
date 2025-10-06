@@ -343,6 +343,7 @@
           <option value="Oak Truck">Oak Truck</option>
           <option value="Santa Ana Town Center">Santa Ana Town Center</option>
         </select>
+        <button id="clearCartBtn" class="clear-cart" style="margin-left: 8px;">🗑 Limpiar carrito</button>
         <!-- Dynamic delivery address shown below dropdown -->
         <div id="selected-store-address" style="margin-top: 0.5em; color: #3d0c4e; font-size: 15px;">
           <span id="selected-store-address-value"></span>
@@ -1043,6 +1044,8 @@
       <input type="text" id="clienteSociedad" placeholder="Sociedad cliente" style="width: 100%; margin-bottom: 5px; padding: 7px; border-radius:4px; border:1px solid #ccc;">
       <input type="email" id="clienteCorreo" placeholder="Correo cliente" style="width: 100%; margin-bottom: 5px; padding: 7px; border-radius:4px; border:1px solid #ccc;">
       <input type="text" id="clienteCelular" placeholder="Celular cliente" style="width: 100%; margin-bottom: 5px; padding: 7px; border-radius:4px; border:1px solid #ccc;">
+      <label for="deliveryDate" style="display:block; margin-top:8px;">Fecha de entrega:</label>
+      <input type="date" id="deliveryDate" required style="width: 100%; margin-bottom: 5px; padding: 7px; border-radius:4px; border:1px solid #ccc;">
     </div>
     <div class="cart-footer" style="justify-content: flex-end;">
       <button id="close-cart" onclick="toggleCart(false)">Cerrar</button>
@@ -1069,17 +1072,22 @@
         const sociedad = document.getElementById("clienteSociedad").value.trim();
         const correo = document.getElementById("clienteCorreo").value.trim();
         const celular = document.getElementById("clienteCelular").value.trim();
+        const deliveryDate = document.getElementById("deliveryDate").value;
         if (!nombre || !sociedad || !correo || !celular) {
           alert("Por favor complete todos los datos del cliente.");
+          return;
+        }
+        if (!deliveryDate) {
+          alert("Por favor seleccione una fecha de entrega antes de continuar.");
           return;
         }
         // jsPDF
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
-        // Consecutivo
-        let consecutivo = parseInt(localStorage.getItem("oc_consecutivo")) || 1;
-        const numOrden = `OC-WEB ${String(consecutivo).padStart(3, "0")}`;
-        localStorage.setItem("oc_consecutivo", consecutivo + 1);
+        // Consecutivo OC-WEB ###
+        let orderNumber = localStorage.getItem("orderNumber") || 1;
+        const orderCode = `OC-WEB ${String(orderNumber).padStart(3, '0')}`;
+        localStorage.setItem("orderNumber", Number(orderNumber) + 1);
         // Logo Oakberry en base64 (debe reemplazarse con el real si se desea mejor calidad)
         const logoBase64 = "iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAYAAACM/rhtAAA..."; // Reemplazar con base64 real si se desea
         try {
@@ -1095,15 +1103,22 @@
         doc.setFontSize(14);
         doc.text(`ORDEN DE COMPRA`, 105, 40, { align: "center" });
         doc.setFontSize(11);
-        doc.text(`Consecutivo: ${numOrden}`, 105, 48, { align: "center" });
-        // Cliente
+        doc.text(`Consecutivo: ${orderCode}`, 105, 48, { align: "center" });
+        // Cliente y datos generales
         doc.setFontSize(11);
-        doc.text(`Cliente: ${nombre}`, 10, 60);
-        doc.text(`Sociedad: ${sociedad}`, 10, 67);
-        doc.text(`Correo: ${correo}`, 10, 74);
-        doc.text(`Celular: ${celular}`, 10, 81);
+        let currentY = 60;
+        doc.text(`Cliente: ${nombre}`, 10, currentY);
+        currentY += 7;
+        doc.text(`Sociedad: ${sociedad}`, 10, currentY);
+        currentY += 7;
+        doc.text(`Correo: ${correo}`, 10, currentY);
+        currentY += 7;
+        doc.text(`Celular: ${celular}`, 10, currentY);
+        currentY += 7;
+        doc.text(`Fecha de entrega: ${deliveryDate}`, 10, currentY);
+        currentY += 10;
         // Tabla productos
-        let y = 95;
+        let y = currentY + 10;
         let subtotal = 0;
         doc.setFontSize(11);
         doc.text("Producto", 10, y);
@@ -1134,7 +1149,10 @@
         doc.text(`IVA (13%): ₡${iva.toFixed(2)}`, 140, y);
         y += 7;
         doc.text(`Total: ₡${total.toFixed(2)}`, 140, y);
-        doc.save(`${numOrden}.pdf`);
+        doc.save(`${orderCode}.pdf`);
+        // Mostrar el código en pantalla (puedes mostrarlo en algún lado si gustas)
+        // Por ejemplo, alert:
+        alert(`Se generó la orden: ${orderCode}`);
       });
     });
   </script>
@@ -1153,17 +1171,17 @@
     function handleStoreChange(storeName) {
       // Confirm if cart has items
       if (cart && cart.length > 0) {
-        const confirmClear = confirm("Al cambiar de tienda se vaciará el carrito. ¿Deseas continuar?");
-        if (!confirmClear) {
+        if (confirm("Cambiar de tienda borrará el carrito de compras. ¿Desea continuar?")) {
+          // limpiar carrito y cambiar dirección
+          cart = [];
+          localStorage.removeItem('cart');
+          renderCart();
+          updateCartCount();
+        } else {
           // Reset dropdown to previous value
           document.getElementById("storeSelector").value = selectedStore;
           return;
         }
-        // Clear cart and update UI
-        cart = [];
-        localStorage.removeItem('cart');
-        renderCart();
-        updateCartCount();
       }
       selectedStore = storeName;
       localStorage.setItem("store", storeName);
@@ -1171,11 +1189,25 @@
       document.getElementById("selected-store-address-value").innerText = storeAddresses[storeName] || '';
     }
 
-    // On load, set dropdown and address
+    // On load, set dropdown and address, and setup clear cart button
     window.addEventListener("DOMContentLoaded", function() {
       // Set dropdown value and address
       document.getElementById("storeSelector").value = selectedStore;
       document.getElementById("selected-store-address-value").innerText = storeAddresses[selectedStore] || '';
+      // Limpiar carrito
+      const clearBtn = document.getElementById("clearCartBtn");
+      if (clearBtn) {
+        clearBtn.addEventListener("click", function() {
+          if (cart && cart.length > 0) {
+            if (confirm("¿Está seguro de que desea limpiar el carrito de compras?")) {
+              cart = [];
+              localStorage.removeItem('cart');
+              renderCart();
+              updateCartCount();
+            }
+          }
+        });
+      }
     });
   </script>
 </body>
