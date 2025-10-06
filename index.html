@@ -343,9 +343,7 @@
           <option value="Oak Truck">Oak Truck</option>
           <option value="Santa Ana Town Center">Santa Ana Town Center</option>
         </select>
-        <p><strong>Dirección de entrega:</strong> <span id="delivery-address"></span></p>
-
-        <button onclick="clearCart()">🧹 Limpiar carrito</button>
+        <!-- Dirección de entrega eliminada de aquí -->
       </div>
       <div class="cart-icon" onclick="toggleCart(true)" style="cursor:pointer;">🛒 <span id="cart-count">0</span></div>
     </div>
@@ -368,11 +366,11 @@
     </div>
   </div>
 
-  <!-- Delivery address display -->
-  <div id="delivery-address-bar" style="background: #f4e6fa; color: #3d0c4e; font-weight: 500; font-size: 16px; padding: 13px 30px; display: flex; align-items: center; gap: 8px;">
+  <!-- Delivery address display (dynamic, updated below) -->
+  <div id="direccionEntrega" style="background: #f4e6fa; color: #3d0c4e; font-weight: 500; font-size: 16px; padding: 13px 30px; display: flex; align-items: center; gap: 8px;">
     <span style="font-size:18px;">📦</span>
     <span><span style="font-weight:600;">Dirección de entrega:</span>
-    <span id="delivery-address-value" style="margin-left:7px; color:#3d0c4e;"></span>
+      <span id="direccionEntregaTexto" style="margin-left:7px; color:#3d0c4e;"></span>
     </span>
   </div>
   <!-- Script para lógica de selección de tiendas -->
@@ -1035,7 +1033,6 @@
   </script>
 
   <div id="cart-sidebar" style="flex-direction: column;">
-    <button onclick="clearCart()" style="background-color: red; color: white; padding: 5px 10px; border: none; margin: 10px;">🗑 Limpiar carrito</button>
     <h3>Carrito</h3>
     <ul id="cart-items" style="padding: 0; margin: 0;"></ul>
     <div class="cart-totals">
@@ -1053,31 +1050,38 @@
     const storeAddresses = {
       "City Mall": "Centro Comercial City Mall Alajuela, Nivel 2",
       "Avenida Escazu": "Avenida Escazu, Local 102 Edificio 202",
-      "Guachipelin": "Centro Comercial calle real en Guachipelin de escazu, local 2",
-      "Oak Truck": "Centro comercial aleste, curridabat",
+      "Guachipelin": "Centro Comercial calle real en Guachipelín de Escazú, local 2",
+      "Oak Truck": "Centro comercial Aleste, Curridabat",
       "Santa Ana Town Center": "Plaza Town Center, Calle Margarita Norte, Ave 3., Santa Ana"
     };
 
-    // Store selector logic and delivery address update
+    // Update only the lower delivery address section
+    function updateStoreInfo(storeName) {
+      const address = storeAddresses[storeName] || '';
+      document.getElementById("storeSelector").value = storeName;
+      document.getElementById("direccionEntrega").textContent = address;
+    }
+
+    // On change, update only the lower section, clear cart if confirmed, no duplicate address
     document.getElementById("storeSelector").addEventListener("change", function () {
       const selectedStore = this.value;
       const confirmChange = confirm("¿Está seguro que desea cambiar de tienda? Se borrará el carrito de compras actual.");
-
       if (confirmChange) {
         cart = [];
         localStorage.removeItem("cart");
         localStorage.setItem("store", selectedStore);
         updateCartDisplay();
-        document.getElementById("delivery-address").innerText = storeAddresses[selectedStore];
+        updateStoreInfo(selectedStore);
       } else {
         this.value = localStorage.getItem("store") || "Guachipelin";
+        updateStoreInfo(this.value);
       }
     });
 
     window.onload = function () {
       const savedStore = localStorage.getItem("store") || "Guachipelin";
       document.getElementById("storeSelector").value = savedStore;
-      document.getElementById("delivery-address").innerText = storeAddresses[savedStore];
+      updateStoreInfo(savedStore);
       updateCartDisplay();
     };
 
