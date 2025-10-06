@@ -333,9 +333,9 @@
   <header>
     <img src="logo-oakberry.png" alt="Oakberry Logo">
     <div style="display: flex; align-items: center; gap: 16px;">
-      <!-- Store selection dropdown and clear cart button -->
+      <!-- Store selection dropdown and delivery address -->
       <div style="padding: 1em;">
-        <label for="storeSelector">🧱 Tienda:</label>
+        <label for="storeSelector">Tienda:</label>
         <select id="storeSelector" onchange="handleStoreChange(this.value)">
           <option value="City Mall">City Mall</option>
           <option value="Avenida Escazú">Avenida Escazú</option>
@@ -343,7 +343,10 @@
           <option value="Oak Truck">Oak Truck</option>
           <option value="Santa Ana Town Center">Santa Ana Town Center</option>
         </select>
-        <button onclick="clearCart()">🧹 Limpiar carrito</button>
+        <!-- Dynamic delivery address shown below dropdown -->
+        <div id="selected-store-address" style="margin-top: 0.5em; color: #3d0c4e; font-size: 15px;">
+          <span id="selected-store-address-value"></span>
+        </div>
       </div>
       <div class="cart-icon" onclick="toggleCart(true)" style="cursor:pointer;">🛒 <span id="cart-count">0</span></div>
     </div>
@@ -366,10 +369,7 @@
     </div>
   </div>
 
-  <!-- Delivery address display (dynamic, updated below) -->
-  <div id="direccionEntrega" style="background: #f4e6fa; color: #3d0c4e; font-weight: 500; font-size: 16px; padding: 13px 30px; display: flex; align-items: center; gap: 8px;">
-    <p style="margin:0;"><strong>📦 Dirección de entrega:</strong> <span id="deliveryAddress"></span></p>
-  </div>
+  <!-- Delivery address moved below the dropdown above -->
   <!-- Script para lógica de selección de tiendas -->
   <script>
     // Datos de tiendas
@@ -1159,37 +1159,23 @@
           document.getElementById("storeSelector").value = selectedStore;
           return;
         }
-        clearCart();
+        // Clear cart and update UI
+        cart = [];
+        localStorage.removeItem('cart');
+        renderCart();
+        updateCartCount();
       }
       selectedStore = storeName;
       localStorage.setItem("store", storeName);
-      document.getElementById("deliveryAddress").innerText = storeAddresses[storeName] || '';
-    }
-
-    function clearCart() {
-      if (cart && cart.length > 0) {
-        if (!confirm("¿Estás seguro de que deseas vaciar el carrito de compras?")) return;
-      }
-      cart = [];
-      localStorage.removeItem('cart');
-      updateCartUI();
-    }
-
-    function updateCartUI() {
-      renderCart();
-      updateCartCount();
-      // Show trash icon only if cart has items
-      document.querySelectorAll('.cart-item-remove, .cart-item .trash-icon').forEach(icon => {
-        icon.style.display = (cart && cart.length > 0) ? 'inline-block' : 'none';
-      });
+      // Update the dynamic address below the dropdown
+      document.getElementById("selected-store-address-value").innerText = storeAddresses[storeName] || '';
     }
 
     // On load, set dropdown and address
     window.addEventListener("DOMContentLoaded", function() {
       // Set dropdown value and address
       document.getElementById("storeSelector").value = selectedStore;
-      document.getElementById("deliveryAddress").innerText = storeAddresses[selectedStore] || '';
-      updateCartUI();
+      document.getElementById("selected-store-address-value").innerText = storeAddresses[selectedStore] || '';
     });
   </script>
 </body>
