@@ -333,11 +333,16 @@
   <header>
     <img src="logo-oakberry.png" alt="Oakberry Logo">
     <div style="display: flex; align-items: center; gap: 16px;">
+      <!-- Store select button with FontAwesome icon fallback to emoji if not loaded -->
       <button id="store-select-btn" style="font-size: 16px; background: #fff; border: 1px solid #3d0c4e; color: #3d0c4e; border-radius: 5px; padding: 7px 15px; cursor: pointer; display: flex; align-items: center; gap: 7px;">
-        🛍️ <span id="selected-store-label">Seleccionar tienda</span>
+        <span class="fa fa-store" style="font-size:18px; margin-right:2px; display:inline-block;"></span>
+        <span style="display:none;" id="store-emoji-fallback">🛍️</span>
+        <span id="selected-store-label">Seleccionar tienda</span>
       </button>
       <div class="cart-icon" onclick="toggleCart(true)" style="cursor:pointer;">🛒 <span id="cart-count">0</span></div>
     </div>
+  <!-- FontAwesome CDN for store icon -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
   </header>
 
   <div class="product-container"></div>
@@ -1036,3 +1041,17 @@
   </div>
 </body>
 </html>
+  <script>
+    // Show fallback emoji if FontAwesome is not loaded
+    document.addEventListener('DOMContentLoaded', () => {
+      // Check if FontAwesome loaded by looking for .fa-store
+      const faStore = document.querySelector('.fa-store');
+      const fallback = document.getElementById('store-emoji-fallback');
+      if (faStore && window.getComputedStyle(faStore).display === "inline-block" && faStore.offsetWidth > 0) {
+        fallback.style.display = "none";
+      } else {
+        faStore.style.display = "none";
+        fallback.style.display = "inline-block";
+      }
+    });
+  </script>
