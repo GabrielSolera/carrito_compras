@@ -1081,80 +1081,121 @@
           alert("Por favor seleccione una fecha de entrega antes de continuar.");
           return;
         }
-        // jsPDF
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        // Consecutivo OC-WEB ###
-        let orderNumber = localStorage.getItem("orderNumber") || 1;
-        const orderCode = `OC-WEB ${String(orderNumber).padStart(3, '0')}`;
-        localStorage.setItem("orderNumber", Number(orderNumber) + 1);
-        // Logo Oakberry en base64 (debe reemplazarse con el real si se desea mejor calidad)
-        const logoBase64 = "iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAYAAACM/rhtAAA..."; // Reemplazar con base64 real si se desea
+
+        // --- BEGIN Consecutivo y orderData ---
+        let orderNumber = localStorage.getItem("orderConsecutivo") || 1;
+        const consecutivo = `OC-WEB ${String(orderNumber).padStart(3, '0')}`;
+        localStorage.setItem("orderConsecutivo", parseInt(orderNumber) + 1);
+
+        // Obtener nombre de tienda seleccionada y dirección de entrega
+        let selectedStoreName = "";
+        let deliveryAddress = "";
+        // Se intenta obtener de selectedStore del localStorage (usado en la app)
         try {
-          doc.addImage(logoBase64, "PNG", 10, 10, 40, 20);
-        } catch(e) {
-          // Si hay error, omitir logo
-        }
-        // Datos fijos de empresa
-        doc.setFontSize(12);
-        doc.text(`ACAI OAK RESTAURANTES`, 150, 15, { align: "right" });
-        doc.text(`CELULAR: 6213-8356`, 150, 22, { align: "right" });
-        doc.text(`ESCAZU, GUACHIPELIN`, 150, 29, { align: "right" });
-        doc.setFontSize(14);
-        doc.text(`ORDEN DE COMPRA`, 105, 40, { align: "center" });
-        doc.setFontSize(11);
-        doc.text(`Consecutivo: ${orderCode}`, 105, 48, { align: "center" });
-        // Cliente y datos generales
-        doc.setFontSize(11);
-        let currentY = 60;
-        doc.text(`Cliente: ${nombre}`, 10, currentY);
-        currentY += 7;
-        doc.text(`Sociedad: ${sociedad}`, 10, currentY);
-        currentY += 7;
-        doc.text(`Correo: ${correo}`, 10, currentY);
-        currentY += 7;
-        doc.text(`Celular: ${celular}`, 10, currentY);
-        currentY += 7;
-        doc.text(`Fecha de entrega: ${deliveryDate}`, 10, currentY);
-        currentY += 10;
-        // Tabla productos
-        let y = currentY + 10;
-        let subtotal = 0;
-        doc.setFontSize(11);
-        doc.text("Producto", 10, y);
-        doc.text("Cant", 100, y);
-        doc.text("Precio", 120, y);
-        doc.text("Subtotal", 160, y);
-        y += 7;
-        carrito.forEach(item => {
-          // item: { name, sku, price, qty }
-          const sub = (parseFloat(item.price) || 0) * (parseInt(item.qty) || 0);
-          subtotal += sub;
-          doc.text(item.name ? String(item.name) : "", 10, y);
-          doc.text(String(item.qty), 100, y);
-          doc.text(`₡${Number(item.price).toFixed(2)}`, 120, y);
-          doc.text(`₡${sub.toFixed(2)}`, 160, y);
-          y += 7;
-          // Salto si pasa de la hoja
-          if (y > 260) {
-            doc.addPage();
-            y = 20;
+          const selectedStoreObj = JSON.parse(localStorage.getItem("selectedStore"));
+          if (selectedStoreObj) {
+            selectedStoreName = selectedStoreObj.name || "";
+            deliveryAddress = selectedStoreObj.address || "";
           }
-        });
-        const iva = subtotal * 0.13;
-        const total = subtotal + iva;
-        y += 10;
-        doc.text(`Subtotal: ₡${subtotal.toFixed(2)}`, 140, y);
-        y += 7;
-        doc.text(`IVA (13%): ₡${iva.toFixed(2)}`, 140, y);
-        y += 7;
-        doc.text(`Total: ₡${total.toFixed(2)}`, 140, y);
-        doc.save(`${orderCode}.pdf`);
-        // Mostrar el código en pantalla (puedes mostrarlo en algún lado si gustas)
-        // Por ejemplo, alert:
-        alert(`Se generó la orden: ${orderCode}`);
+        } catch(e) {}
+        // Si no, usar el valor del selector y storeAddresses
+        if (!selectedStoreName) {
+          selectedStoreName = document.getElementById("storeSelector")?.value || "";
+        }
+        if (!deliveryAddress && window.storeAddresses && selectedStoreName) {
+          deliveryAddress = storeAddresses[selectedStoreName] || "";
+        }
+
+        const orderData = {
+          customerName: nombre,
+          customerSociedad: sociedad,
+          customerEmail: correo,
+          customerPhone: celular,
+          deliveryDate: deliveryDate,
+          storeName: selectedStoreName,
+          deliveryAddress: deliveryAddress,
+          cartItems: carrito
+        };
+        // --- END Consecutivo y orderData ---
+
+        // Llamar a la función para generar el PDF usando orderData y consecutivo
+        generateOrderPDF(orderData, consecutivo);
       });
     });
+
+    // Nueva función para generar el PDF de la orden
+    function generateOrderPDF(orderData, consecutivo) {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      // Logo Oakberry en base64 (debe reemplazarse con el real si se desea mejor calidad)
+      const logoBase64 = "iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAYAAACM/rhtAAA..."; // Reemplazar con base64 real si se desea
+      try {
+        doc.addImage(logoBase64, "PNG", 10, 10, 40, 20);
+      } catch(e) {
+        // Si hay error, omitir logo
+      }
+      // Datos fijos de empresa
+      doc.setFontSize(12);
+      doc.text(`ACAI OAK RESTAURANTES`, 150, 15, { align: "right" });
+      doc.text(`CELULAR: 6213-8356`, 150, 22, { align: "right" });
+      doc.text(`ESCAZU, GUACHIPELIN`, 150, 29, { align: "right" });
+      doc.setFontSize(14);
+      doc.text(`ORDEN DE COMPRA`, 105, 40, { align: "center" });
+      doc.setFontSize(11);
+      doc.text(`Consecutivo: ${consecutivo}`, 105, 48, { align: "center" });
+      // Cliente y datos generales
+      doc.setFontSize(11);
+      let currentY = 60;
+      doc.text(`Cliente: ${orderData.customerName || ""}`, 10, currentY);
+      currentY += 7;
+      doc.text(`Sociedad: ${orderData.customerSociedad || ""}`, 10, currentY);
+      currentY += 7;
+      doc.text(`Correo: ${orderData.customerEmail || ""}`, 10, currentY);
+      currentY += 7;
+      doc.text(`Celular: ${orderData.customerPhone || ""}`, 10, currentY);
+      currentY += 7;
+      doc.text(`Fecha de entrega: ${orderData.deliveryDate || ""}`, 10, currentY);
+      currentY += 7;
+      doc.text(`Tienda: ${orderData.storeName || ""}`, 10, currentY);
+      currentY += 7;
+      doc.text(`Dirección de entrega: ${orderData.deliveryAddress || ""}`, 10, currentY);
+      currentY += 10;
+      // Tabla productos
+      let y = currentY + 10;
+      let subtotal = 0;
+      doc.setFontSize(11);
+      doc.text("Producto", 10, y);
+      doc.text("Cant", 100, y);
+      doc.text("Precio", 120, y);
+      doc.text("Subtotal", 160, y);
+      y += 7;
+      (orderData.cartItems || []).forEach(item => {
+        // item: { name, sku, price, qty }
+        const sub = (parseFloat(item.price) || 0) * (parseInt(item.qty) || 0);
+        subtotal += sub;
+        doc.text(item.name ? String(item.name) : "", 10, y);
+        doc.text(String(item.qty), 100, y);
+        doc.text(`₡${Number(item.price).toFixed(2)}`, 120, y);
+        doc.text(`₡${sub.toFixed(2)}`, 160, y);
+        y += 7;
+        // Salto si pasa de la hoja
+        if (y > 260) {
+          doc.addPage();
+          y = 20;
+        }
+      });
+      const iva = subtotal * 0.13;
+      const total = subtotal + iva;
+      y += 10;
+      doc.text(`Subtotal: ₡${subtotal.toFixed(2)}`, 140, y);
+      y += 7;
+      doc.text(`IVA (13%): ₡${iva.toFixed(2)}`, 140, y);
+      y += 7;
+      doc.text(`Total: ₡${total.toFixed(2)}`, 140, y);
+      doc.save(`${consecutivo}.pdf`);
+      // Mostrar el código en pantalla (puedes mostrarlo en algún lado si gustas)
+      alert(`Se generó la orden: ${consecutivo}`);
+    }
   </script>
   <script>
     const storeAddresses = {
