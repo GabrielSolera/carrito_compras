@@ -205,17 +205,25 @@
     }
     #cart-sidebar .cart-footer {
       display: flex;
-      justify-content: space-between;
+      justify-content: flex-end;
       gap: 10px;
     }
     #cart-sidebar button {
-      padding: 12px 15px;
-      font-size: 14px;
+      padding: 8px 10px;
+      font-size: 13px;
       border-radius: 4px;
       cursor: pointer;
       border: none;
-      flex: 1;
+      max-width: 130px;
+      flex: 1 1 0;
       user-select: none;
+      box-sizing: border-box;
+    }
+    #cart-sidebar button#process-cart,
+    #cart-sidebar button#generar-oc-pdf-btn,
+    #cart-sidebar button#enviar-correo-btn,
+    #cart-sidebar button#next-step-btn {
+      max-width: 130px;
     }
     #cart-sidebar button#process-cart {
       background-color: #d32f2f;
@@ -225,6 +233,19 @@
     #cart-sidebar button#close-cart {
       background-color: #3d0c4e;
       color: white;
+    }
+    /* Close (X) icon positioning for sidebar */
+    #close-cart-x {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: transparent;
+      border: none;
+      font-size: 22px;
+      cursor: pointer;
+      color: #3d0c4e;
+      z-index: 1001;
+      padding: 0 6px;
     }
     /* Login & Registration modal */
     #loginModal {
@@ -335,13 +356,11 @@
     <div style="display: flex; align-items: center; gap: 16px;">
       <!-- Store selection dropdown and delivery address -->
       <div style="padding: 1em;">
-        <label for="storeSelector">Tienda:</label>
-        <select id="storeSelector" onchange="handleStoreChange(this.value)">
-          <option value="City Mall">City Mall</option>
-          <option value="Avenida Escazú">Avenida Escazú</option>
-          <option value="Guachipelin">Guachipelin</option>
-          <option value="Oak Truck">Oak Truck</option>
-          <option value="Santa Ana Town Center">Santa Ana Town Center</option>
+        <label for="tienda">Tienda:</label>
+        <select id="tienda" onchange="cargarDatosTienda(this.value)">
+          <option value="">Selecciona una tienda</option>
+          <option value="Oakberry CR">Oakberry CR</option>
+          <option value="Oakberry PTY">Oakberry PTY</option>
         </select>
         <button id="clearCartBtn" class="clear-cart" style="margin-left: 8px;">🗑 Limpiar carrito</button>
         <!-- Dynamic delivery address shown below dropdown -->
@@ -349,6 +368,28 @@
           <span id="selected-store-address-value"></span>
         </div>
       </div>
+  <!-- Campos para datos extraídos -->
+  <input type="text" id="en_atencion_a" placeholder="En atención a">
+  <input type="text" id="direccion_entrega" placeholder="Dirección de entrega">
+  <script>
+    // Reemplaza la URL con la de tu Apps Script Web App desplegado
+    const URL_TIENDAS_JSON = "https://script.google.com/macros/s/AKfycbwxyz123456abc/exec";
+
+    function cargarDatosTienda(nombreTienda) {
+      fetch(URL_TIENDAS_JSON)
+        .then(res => res.json())
+        .then(data => {
+          const tienda = data.find(row => row["Tienda"] === nombreTienda);
+          if (tienda) {
+            document.getElementById("direccion_entrega").value = tienda["Dirección de entrega"];
+            document.getElementById("en_atencion_a").value = tienda["En atención a"];
+          }
+        })
+        .catch(error => {
+          console.error("Error al cargar datos de tienda:", error);
+        });
+    }
+  </script>
       <div class="cart-icon" onclick="toggleCart(true)" style="cursor:pointer;">🛒 <span id="cart-count">0</span></div>
     </div>
   <!-- FontAwesome CDN for store icon -->
@@ -1030,111 +1071,113 @@
     });
   </script>
 
-  <div id="cart-sidebar" style="flex-direction: column;">
-    <h3>Carrito</h3>
-    <ul id="cart-items" style="padding: 0; margin: 0;"></ul>
-    <div class="cart-totals">
-      <div><span>Subtotal:</span><span id="subtotal">₡0</span></div>
-      <div><span>IVA (13%):</span><span id="iva">₡0</span></div>
-      <div><strong>Total:</strong><strong id="total">₡0</strong></div>
+  <div id="cart-sidebar" style="flex-direction: column; position: relative;">
+    <!-- Botón de cierre X, reemplazado por icono ❌ en la esquina -->
+    <button id="close-cart-x" onclick="toggleCart(false)" aria-label="Cerrar" title="Cerrar"><span style="font-size: 22px; pointer-events:none;">❌</span></button>
+    <h3 style="margin-top: 30px;">Carrito</h3>
+    <!-- Paso 1: Productos y totales -->
+    <div id="cart-step1">
+      <ul id="cart-items" style="padding: 0; margin: 0;"></ul>
+      <div class="cart-totals">
+        <div><span>Subtotal:</span><span id="subtotal">₡0</span></div>
+        <div><span>IVA (13%):</span><span id="iva">₡0</span></div>
+        <div><strong>Total:</strong><strong id="total">₡0</strong></div>
+      </div>
+      <div class="cart-footer">
+        <button id="process-cart">Procesar compra</button>
+        <button id="next-step-btn" style="background: #3d0c4e; color: #fff; font-weight: bold;">Siguiente</button>
+      </div>
     </div>
-    <!-- Datos del cliente para la orden de compra -->
-    <div id="order-client-fields" style="margin-bottom: 10px; margin-top: 10px;">
-      <input type="text" id="clienteNombre" placeholder="Nombre cliente" style="width: 100%; margin-bottom: 5px; padding: 7px; border-radius:4px; border:1px solid #ccc;">
-      <input type="text" id="clienteSociedad" placeholder="Sociedad cliente" style="width: 100%; margin-bottom: 5px; padding: 7px; border-radius:4px; border:1px solid #ccc;">
-      <input type="email" id="clienteCorreo" placeholder="Correo cliente" style="width: 100%; margin-bottom: 5px; padding: 7px; border-radius:4px; border:1px solid #ccc;">
-      <input type="text" id="clienteCelular" placeholder="Celular cliente" style="width: 100%; margin-bottom: 5px; padding: 7px; border-radius:4px; border:1px solid #ccc;">
-      <label for="deliveryDate" style="display:block; margin-top:8px;">Fecha de entrega:</label>
-      <input type="date" id="deliveryDate" required style="width: 100%; margin-bottom: 5px; padding: 7px; border-radius:4px; border:1px solid #ccc;">
-    </div>
-    <div class="cart-footer" style="justify-content: flex-end;">
-      <button id="close-cart" onclick="toggleCart(false)">Cerrar</button>
-      <button id="process-cart" style="background: #d32f2f; color: #fff; font-weight: bold; margin-left: 10px; min-width: 160px;">Procesar compra</button>
-      <button id="procesar-orden-btn" style="background: #3d0c4e; color: #fff; font-weight: bold; margin-left: 10px; min-width: 160px;">Generar OC PDF</button>
+    <!-- Paso 2: Datos de cliente y acciones OC -->
+    <div id="cart-step2" style="display: none;">
+      <form id="order-step2-form" autocomplete="off" onsubmit="return false;">
+        <input type="text" id="step2-tienda" placeholder="Nombre de tienda" style="width: 100%; margin-bottom: 7px; padding: 7px; border-radius:4px; border:1px solid #ccc;">
+        <input type="text" id="step2-atencion" placeholder="En atención a" style="width: 100%; margin-bottom: 7px; padding: 7px; border-radius:4px; border:1px solid #ccc;">
+        <input type="text" id="step2-direccion" placeholder="Dirección de entrega" style="width: 100%; margin-bottom: 7px; padding: 7px; border-radius:4px; border:1px solid #ccc;">
+        <label for="step2-fecha" style="display:block; margin-top:8px;">Fecha de entrega:</label>
+        <input type="date" id="step2-fecha" required style="width: 100%; margin-bottom: 10px; padding: 7px; border-radius:4px; border:1px solid #ccc;">
+      </form>
+      <div class="cart-footer">
+        <button id="generar-oc-pdf-btn" style="background: #3d0c4e; color: #fff; font-weight: bold;">Generar OC PDF</button>
+        <button id="enviar-correo-btn" style="background: #d32f2f; color: #fff; font-weight: bold;" onclick="sendOrderEmail()">Enviar por correo</button>
+      </div>
     </div>
   </div>
   <!-- jsPDF library for PDF generation -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script>
-    // Botón para generar PDF de Orden de Compra
+    // FLUJO DE PASOS DEL CARRITO (2 pasos)
     document.addEventListener('DOMContentLoaded', function() {
-      const btn = document.getElementById("procesar-orden-btn");
-      if (!btn) return;
-      btn.addEventListener("click", function() {
-        // Usar el mismo array cart que maneja el carrito
-        const carrito = typeof cart !== "undefined" ? cart : [];
-        if (!carrito || carrito.length === 0) {
-          alert("El carrito está vacío.");
-          return;
-        }
-        // Validar campos de cliente
-        const nombre = document.getElementById("clienteNombre").value.trim();
-        const sociedad = document.getElementById("clienteSociedad").value.trim();
-        const correo = document.getElementById("clienteCorreo").value.trim();
-        const celular = document.getElementById("clienteCelular").value.trim();
-        const deliveryDate = document.getElementById("deliveryDate").value;
-        if (!nombre || !sociedad || !correo || !celular) {
-          alert("Por favor complete todos los datos del cliente.");
-          return;
-        }
-        if (!deliveryDate) {
-          alert("Por favor seleccione una fecha de entrega antes de continuar.");
-          return;
-        }
-
-        // --- BEGIN Consecutivo y orderData ---
-        let orderNumber = localStorage.getItem("orderConsecutivo") || 1;
-        const consecutivo = `OC-WEB ${String(orderNumber).padStart(3, '0')}`;
-        localStorage.setItem("orderConsecutivo", parseInt(orderNumber) + 1);
-
-        // Obtener nombre de tienda seleccionada y dirección de entrega
-        let selectedStoreName = "";
-        let deliveryAddress = "";
-        // Se intenta obtener de selectedStore del localStorage (usado en la app)
-        try {
-          const selectedStoreObj = JSON.parse(localStorage.getItem("selectedStore"));
-          if (selectedStoreObj) {
-            selectedStoreName = selectedStoreObj.name || "";
-            deliveryAddress = selectedStoreObj.address || "";
+      // Paso 1: Siguiente -> Paso 2
+      const nextStepBtn = document.getElementById('next-step-btn');
+      if (nextStepBtn) {
+        nextStepBtn.addEventListener('click', () => {
+          document.getElementById('cart-step1').style.display = 'none';
+          document.getElementById('cart-step2').style.display = 'block';
+          // Autocompletar campos de tienda y dirección si es posible
+          let tienda = '';
+          let direccion = '';
+          try {
+            const selectedStoreObj = JSON.parse(localStorage.getItem("selectedStore"));
+            if (selectedStoreObj) {
+              tienda = selectedStoreObj.name || '';
+              direccion = selectedStoreObj.address || '';
+            }
+          } catch(e) {}
+          if (!tienda) {
+            tienda = document.getElementById("storeSelector")?.value || '';
           }
-        } catch(e) {}
-        // Si no, usar el valor del selector y storeAddresses
-        if (!selectedStoreName) {
-          selectedStoreName = document.getElementById("storeSelector")?.value || "";
-        }
-        if (!deliveryAddress && window.storeAddresses && selectedStoreName) {
-          deliveryAddress = storeAddresses[selectedStoreName] || "";
-        }
-
-        const orderData = {
-          customerName: nombre,
-          customerSociedad: sociedad,
-          customerEmail: correo,
-          customerPhone: celular,
-          deliveryDate: deliveryDate,
-          storeName: selectedStoreName,
-          deliveryAddress: deliveryAddress,
-          cartItems: carrito
-        };
-        // --- END Consecutivo y orderData ---
-
-        // Llamar a la función para generar el PDF usando orderData y consecutivo
-        generateOrderPDF(orderData, consecutivo);
-      });
+          if (!direccion && window.storeAddresses && tienda) {
+            direccion = storeAddresses[tienda] || '';
+          }
+          document.getElementById('step2-tienda').value = tienda;
+          document.getElementById('step2-direccion').value = direccion;
+        });
+      }
+      // Paso 2: Botón "Generar OC PDF"
+      const pdfBtn = document.getElementById('generar-oc-pdf-btn');
+      if (pdfBtn) {
+        pdfBtn.addEventListener('click', function() {
+          // Validar campos
+          const tienda = document.getElementById('step2-tienda').value.trim();
+          const atencion = document.getElementById('step2-atencion').value.trim();
+          const direccion = document.getElementById('step2-direccion').value.trim();
+          const fecha = document.getElementById('step2-fecha').value;
+          if (!tienda || !atencion || !direccion) {
+            alert("Por favor, complete todos los campos.");
+            return;
+          }
+          if (!fecha) {
+            alert("Por favor, seleccione una fecha de entrega.");
+            return;
+          }
+          // Consecutivo
+          let orderNumber = localStorage.getItem("orderConsecutivo") || 1;
+          const consecutivo = `OC-WEB ${String(orderNumber).padStart(3, '0')}`;
+          localStorage.setItem("orderConsecutivo", parseInt(orderNumber) + 1);
+          // Datos para PDF
+          const orderData = {
+            tienda,
+            atencion,
+            direccion,
+            fecha,
+            cartItems: (typeof cart !== "undefined" ? cart : [])
+          };
+          generateOrderPDFStep2(orderData, consecutivo);
+        });
+      }
+      // Permitir volver al paso 1 si se desea (opcional: click en el título, o implementar un botón "Atrás")
     });
 
-    // Nueva función para generar el PDF de la orden
-    function generateOrderPDF(orderData, consecutivo) {
+    // Generar PDF para paso 2
+    function generateOrderPDFStep2(orderData, consecutivo) {
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
       // Logo Oakberry en base64 (debe reemplazarse con el real si se desea mejor calidad)
       const logoBase64 = "iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAYAAACM/rhtAAA..."; // Reemplazar con base64 real si se desea
       try {
         doc.addImage(logoBase64, "PNG", 10, 10, 40, 20);
-      } catch(e) {
-        // Si hay error, omitir logo
-      }
-      // Datos fijos de empresa
+      } catch(e) {}
       doc.setFontSize(12);
       doc.text(`ACAI OAK RESTAURANTES`, 150, 15, { align: "right" });
       doc.text(`CELULAR: 6213-8356`, 150, 22, { align: "right" });
@@ -1143,22 +1186,14 @@
       doc.text(`ORDEN DE COMPRA`, 105, 40, { align: "center" });
       doc.setFontSize(11);
       doc.text(`Consecutivo: ${consecutivo}`, 105, 48, { align: "center" });
-      // Cliente y datos generales
-      doc.setFontSize(11);
       let currentY = 60;
-      doc.text(`Cliente: ${orderData.customerName || ""}`, 10, currentY);
+      doc.text(`Nombre de tienda: ${orderData.tienda || ""}`, 10, currentY);
       currentY += 7;
-      doc.text(`Sociedad: ${orderData.customerSociedad || ""}`, 10, currentY);
+      doc.text(`En atención a: ${orderData.atencion || ""}`, 10, currentY);
       currentY += 7;
-      doc.text(`Correo: ${orderData.customerEmail || ""}`, 10, currentY);
+      doc.text(`Dirección de entrega: ${orderData.direccion || ""}`, 10, currentY);
       currentY += 7;
-      doc.text(`Celular: ${orderData.customerPhone || ""}`, 10, currentY);
-      currentY += 7;
-      doc.text(`Fecha de entrega: ${orderData.deliveryDate || ""}`, 10, currentY);
-      currentY += 7;
-      doc.text(`Tienda: ${orderData.storeName || ""}`, 10, currentY);
-      currentY += 7;
-      doc.text(`Dirección de entrega: ${orderData.deliveryAddress || ""}`, 10, currentY);
+      doc.text(`Fecha de entrega: ${orderData.fecha || ""}`, 10, currentY);
       currentY += 10;
       // Tabla productos
       let y = currentY + 10;
@@ -1170,7 +1205,6 @@
       doc.text("Subtotal", 160, y);
       y += 7;
       (orderData.cartItems || []).forEach(item => {
-        // item: { name, sku, price, qty }
         const sub = (parseFloat(item.price) || 0) * (parseInt(item.qty) || 0);
         subtotal += sub;
         doc.text(item.name ? String(item.name) : "", 10, y);
@@ -1178,7 +1212,6 @@
         doc.text(`₡${Number(item.price).toFixed(2)}`, 120, y);
         doc.text(`₡${sub.toFixed(2)}`, 160, y);
         y += 7;
-        // Salto si pasa de la hoja
         if (y > 260) {
           doc.addPage();
           y = 20;
@@ -1193,11 +1226,101 @@
       y += 7;
       doc.text(`Total: ₡${total.toFixed(2)}`, 140, y);
       doc.save(`${consecutivo}.pdf`);
-      // Mostrar el código en pantalla (puedes mostrarlo en algún lado si gustas)
       alert(`Se generó la orden: ${consecutivo}`);
+    }
+    // Enviar PDF por correo (simulado vía MailApp)
+    function sendOrderEmail() {
+      // Validar campos
+      const tienda = document.getElementById('step2-tienda').value.trim();
+      const atencion = document.getElementById('step2-atencion').value.trim();
+      const direccion = document.getElementById('step2-direccion').value.trim();
+      const fecha = document.getElementById('step2-fecha').value;
+      if (!tienda || !atencion || !direccion) {
+        alert("Por favor, complete todos los campos.");
+        return;
+      }
+      if (!fecha) {
+        alert("Por favor, seleccione una fecha de entrega.");
+        return;
+      }
+      let orderNumber = localStorage.getItem("orderConsecutivo") || 1;
+      const consecutivo = `OC-WEB ${String(orderNumber).padStart(3, '0')}`;
+      localStorage.setItem("orderConsecutivo", parseInt(orderNumber) + 1);
+      const orderData = {
+        tienda,
+        atencion,
+        direccion,
+        fecha,
+        cartItems: (typeof cart !== "undefined" ? cart : [])
+      };
+      // Generar PDF como blob
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      const logoBase64 = "iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAYAAACM/rhtAAA...";
+      try { doc.addImage(logoBase64, "PNG", 10, 10, 40, 20); } catch(e) {}
+      doc.setFontSize(12);
+      doc.text(`ACAI OAK RESTAURANTES`, 150, 15, { align: "right" });
+      doc.text(`CELULAR: 6213-8356`, 150, 22, { align: "right" });
+      doc.text(`ESCAZU, GUACHIPELIN`, 150, 29, { align: "right" });
+      doc.setFontSize(14);
+      doc.text(`ORDEN DE COMPRA`, 105, 40, { align: "center" });
+      doc.setFontSize(11);
+      doc.text(`Consecutivo: ${consecutivo}`, 105, 48, { align: "center" });
+      let currentY = 60;
+      doc.text(`Nombre de tienda: ${orderData.tienda || ""}`, 10, currentY);
+      currentY += 7;
+      doc.text(`En atención a: ${orderData.atencion || ""}`, 10, currentY);
+      currentY += 7;
+      doc.text(`Dirección de entrega: ${orderData.direccion || ""}`, 10, currentY);
+      currentY += 7;
+      doc.text(`Fecha de entrega: ${orderData.fecha || ""}`, 10, currentY);
+      currentY += 10;
+      let y = currentY + 10;
+      let subtotal = 0;
+      doc.setFontSize(11);
+      doc.text("Producto", 10, y);
+      doc.text("Cant", 100, y);
+      doc.text("Precio", 120, y);
+      doc.text("Subtotal", 160, y);
+      y += 7;
+      (orderData.cartItems || []).forEach(item => {
+        const sub = (parseFloat(item.price) || 0) * (parseInt(item.qty) || 0);
+        subtotal += sub;
+        doc.text(item.name ? String(item.name) : "", 10, y);
+        doc.text(String(item.qty), 100, y);
+        doc.text(`₡${Number(item.price).toFixed(2)}`, 120, y);
+        doc.text(`₡${sub.toFixed(2)}`, 160, y);
+        y += 7;
+        if (y > 260) {
+          doc.addPage();
+          y = 20;
+        }
+      });
+      const iva = subtotal * 0.13;
+      const total = subtotal + iva;
+      y += 10;
+      doc.text(`Subtotal: ₡${subtotal.toFixed(2)}`, 140, y);
+      y += 7;
+      doc.text(`IVA (13%): ₡${iva.toFixed(2)}`, 140, y);
+      y += 7;
+      doc.text(`Total: ₡${total.toFixed(2)}`, 140, y);
+      // Convertir a base64 para MailApp
+      const pdfBase64 = doc.output('datauristring').split(',')[1];
+      // Simular envío con Apps Script
+      if (typeof google !== "undefined" && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(function() { alert("Correo enviado correctamente."); })
+          .withFailureHandler(function(e) { alert("Error al enviar el correo: " + e.message); })
+          .sendOrderEmailToOak(pdfBase64, consecutivo);
+      } else {
+        // Simulación: mostrar que se enviaría
+        alert("Se enviaría el PDF por correo a gabriel.solera@oaklatam.com (simulado en frontend)");
+      }
     }
   </script>
   <script>
+    // -- FIN PASO 2 --
+
     const storeAddresses = {
       "City Mall": "Centro Comercial City Mall Alajuela, Nivel 2",
       "Avenida Escazú": "Avenida Escazú, Local 102 Edificio 202",
@@ -1265,5 +1388,13 @@
         faStore.style.display = "none";
         fallback.style.display = "inline-block";
       }
+    });
+  </script>
+  <script>
+    // Ajuste de campos cliente: cambiamos "Nombre cliente" por "Nombre de tienda", quitamos correo/celular
+    document.addEventListener('DOMContentLoaded', function() {
+      // Ocultar/eliminar campos antiguos si existen
+      const oldFields = document.getElementById('order-client-fields');
+      if (oldFields) oldFields.style.display = 'none';
     });
   </script>
