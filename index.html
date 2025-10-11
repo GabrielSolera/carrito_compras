@@ -206,46 +206,56 @@
     #cart-sidebar .cart-footer {
       display: flex;
       justify-content: flex-end;
-      gap: 10px;
+      gap: 8px;
+      margin-top: 10px;
     }
     #cart-sidebar button {
-      padding: 8px 10px;
-      font-size: 13px;
+      padding: 6px 10px;
+      font-size: 12px;
       border-radius: 4px;
       cursor: pointer;
       border: none;
-      max-width: 130px;
+      max-width: 110px;
       flex: 1 1 0;
       user-select: none;
       box-sizing: border-box;
+      min-width: 0;
+      white-space: nowrap;
+      transition: background 0.15s, color 0.15s;
     }
     #cart-sidebar button#process-cart,
     #cart-sidebar button#generar-oc-pdf-btn,
     #cart-sidebar button#enviar-correo-btn,
     #cart-sidebar button#next-step-btn {
-      max-width: 130px;
+      max-width: 110px;
+      font-size: 12px;
+      padding: 6px 10px;
     }
     #cart-sidebar button#process-cart {
       background-color: #d32f2f;
       color: white;
       font-weight: bold;
     }
-    #cart-sidebar button#close-cart {
-      background-color: #3d0c4e;
-      color: white;
-    }
-    /* Close (X) icon positioning for sidebar */
+    /* Visually distinct X close button in top-right */
     #close-cart-x {
       position: absolute;
       top: 10px;
       right: 10px;
       background: transparent;
       border: none;
-      font-size: 22px;
+      font-size: 28px;
       cursor: pointer;
-      color: #3d0c4e;
+      color: #d32f2f;
       z-index: 1001;
       padding: 0 6px;
+      font-weight: bold;
+      line-height: 1;
+      transition: color 0.18s;
+    }
+    #close-cart-x:hover {
+      color: #a10000;
+      background: #f4e6ea;
+      border-radius: 50%;
     }
     /* Login & Registration modal */
     #loginModal {
@@ -368,28 +378,6 @@
           <span id="selected-store-address-value"></span>
         </div>
       </div>
-  <!-- Campos para datos extraídos -->
-  <input type="text" id="en_atencion_a" placeholder="En atención a">
-  <input type="text" id="direccion_entrega" placeholder="Dirección de entrega">
-  <script>
-    // Reemplaza la URL con la de tu Apps Script Web App desplegado
-    const URL_TIENDAS_JSON = "https://script.google.com/macros/s/AKfycbwxyz123456abc/exec";
-
-    function cargarDatosTienda(nombreTienda) {
-      fetch(URL_TIENDAS_JSON)
-        .then(res => res.json())
-        .then(data => {
-          const tienda = data.find(row => row["Tienda"] === nombreTienda);
-          if (tienda) {
-            document.getElementById("direccion_entrega").value = tienda["Dirección de entrega"];
-            document.getElementById("en_atencion_a").value = tienda["En atención a"];
-          }
-        })
-        .catch(error => {
-          console.error("Error al cargar datos de tienda:", error);
-        });
-    }
-  </script>
       <div class="cart-icon" onclick="toggleCart(true)" style="cursor:pointer;">🛒 <span id="cart-count">0</span></div>
     </div>
   <!-- FontAwesome CDN for store icon -->
@@ -1072,8 +1060,8 @@
   </script>
 
   <div id="cart-sidebar" style="flex-direction: column; position: relative;">
-    <!-- Botón de cierre X, reemplazado por icono ❌ en la esquina -->
-    <button id="close-cart-x" onclick="toggleCart(false)" aria-label="Cerrar" title="Cerrar"><span style="font-size: 22px; pointer-events:none;">❌</span></button>
+    <!-- Botón de cierre X, visualmente destacado, esquina superior derecha -->
+    <button id="close-cart-x" onclick="toggleCart(false)" aria-label="Cerrar" title="Cerrar">✕</button>
     <h3 style="margin-top: 30px;">Carrito</h3>
     <!-- Paso 1: Productos y totales -->
     <div id="cart-step1">
@@ -1084,21 +1072,21 @@
         <div><strong>Total:</strong><strong id="total">₡0</strong></div>
       </div>
       <div class="cart-footer">
-        <button id="process-cart">Procesar compra</button>
+        <button id="process-cart">Procesar</button>
         <button id="next-step-btn" style="background: #3d0c4e; color: #fff; font-weight: bold;">Siguiente</button>
       </div>
     </div>
-    <!-- Paso 2: Datos de cliente y acciones OC -->
+    <!-- Paso 2: Nueva sección de datos de OC -->
     <div id="cart-step2" style="display: none;">
       <form id="order-step2-form" autocomplete="off" onsubmit="return false;">
-        <input type="text" id="step2-tienda" placeholder="Nombre de tienda" style="width: 100%; margin-bottom: 7px; padding: 7px; border-radius:4px; border:1px solid #ccc;">
+        <input type="text" id="step2-tienda" placeholder="Tienda" style="width: 100%; margin-bottom: 7px; padding: 7px; border-radius:4px; border:1px solid #ccc;">
         <input type="text" id="step2-atencion" placeholder="En atención a" style="width: 100%; margin-bottom: 7px; padding: 7px; border-radius:4px; border:1px solid #ccc;">
         <input type="text" id="step2-direccion" placeholder="Dirección de entrega" style="width: 100%; margin-bottom: 7px; padding: 7px; border-radius:4px; border:1px solid #ccc;">
         <label for="step2-fecha" style="display:block; margin-top:8px;">Fecha de entrega:</label>
         <input type="date" id="step2-fecha" required style="width: 100%; margin-bottom: 10px; padding: 7px; border-radius:4px; border:1px solid #ccc;">
       </form>
-      <div class="cart-footer">
-        <button id="generar-oc-pdf-btn" style="background: #3d0c4e; color: #fff; font-weight: bold;">Generar OC PDF</button>
+      <div class="cart-footer" style="margin-top: 14px;">
+        <button id="generar-oc-pdf-btn" style="background: #3d0c4e; color: #fff; font-weight: bold;">Generar OC</button>
         <button id="enviar-correo-btn" style="background: #d32f2f; color: #fff; font-weight: bold;" onclick="sendOrderEmail()">Enviar por correo</button>
       </div>
     </div>
@@ -1117,6 +1105,7 @@
           // Autocompletar campos de tienda y dirección si es posible
           let tienda = '';
           let direccion = '';
+          let atencion = '';
           try {
             const selectedStoreObj = JSON.parse(localStorage.getItem("selectedStore"));
             if (selectedStoreObj) {
@@ -1130,11 +1119,16 @@
           if (!direccion && window.storeAddresses && tienda) {
             direccion = storeAddresses[tienda] || '';
           }
+          // Si se guardó atención, cargar
+          if (localStorage.getItem("step2_atencion")) {
+            atencion = localStorage.getItem("step2_atencion");
+          }
           document.getElementById('step2-tienda').value = tienda;
           document.getElementById('step2-direccion').value = direccion;
+          document.getElementById('step2-atencion').value = atencion;
         });
       }
-      // Paso 2: Botón "Generar OC PDF"
+      // Paso 2: Botón "Generar OC"
       const pdfBtn = document.getElementById('generar-oc-pdf-btn');
       if (pdfBtn) {
         pdfBtn.addEventListener('click', function() {
@@ -1163,6 +1157,8 @@
             fecha,
             cartItems: (typeof cart !== "undefined" ? cart : [])
           };
+          // Guardar atención para autocompletar luego
+          localStorage.setItem("step2_atencion", atencion);
           generateOrderPDFStep2(orderData, consecutivo);
         });
       }
